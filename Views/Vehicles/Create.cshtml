@@ -1,0 +1,63 @@
+﻿@model VehicleManagement.ViewModels.VehicleFormViewModel
+
+@{
+    ViewData["Title"] = "Add Vehicle";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Add Vehicle</h1>
+        <a asp-action="Index" class="btn btn-secondary">Back to Vehicles</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="OwnerName" class="form-label"></label>
+                    <input asp-for="OwnerName" class="form-control" placeholder="Enter owner name" />
+                    <span asp-validation-for="OwnerName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ManufacturerId" class="form-label"></label>
+                    <select asp-for="ManufacturerId" asp-items="Model.Manufacturers" class="form-select">
+                        <option value="">-- Select Manufacturer --</option>
+                    </select>
+                    <span asp-validation-for="ManufacturerId" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="YearOfManufacture" class="form-label"></label>
+                    <input asp-for="YearOfManufacture" type="number" class="form-control" placeholder="e.g. 2020" />
+                    <span asp-validation-for="YearOfManufacture" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="WeightKg" class="form-label"></label>
+                    <input asp-for="WeightKg"
+                           type="number"
+                           step="0.01"
+                           min="0.01"
+                           class="form-control"
+                           placeholder="e.g. 1850.50" />
+                    <span asp-validation-for="WeightKg" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Add Vehicle</button>
+                    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

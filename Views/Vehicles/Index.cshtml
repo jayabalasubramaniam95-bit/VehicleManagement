@@ -1,0 +1,279 @@
+﻿@model VehicleManagement.ViewModels.VehicleListViewModel
+
+@{
+    ViewData["Title"] = "Vehicles";
+}
+
+<div class="page-container">
+
+    <div class="page-header">
+        <div>
+            <h1>Vehicles</h1>
+            <p class="page-subtitle">Manage all registered vehicles</p>
+        </div>
+
+        <a asp-controller="Vehicles" asp-action="Create" class="btn btn-primary">+ Add Vehicle</a>
+    </div>
+
+    <!-- Search -->
+    <div class="toolbar">
+        <div class="search-group">
+            <label for="vehicleSearch">Search vehicles</label>
+            <input id="vehicleSearch"
+                   type="search"
+                   class="form-control"
+                   placeholder="Search vehicles..."
+                   autocomplete="off" />
+        </div>
+
+        <span id="searchResultCount" class="search-result-info"></span>
+    </div>
+
+    <!-- Vehicle list -->
+    @if (Model.Vehicles.Any())
+    {
+        <div class="table-card">
+            <div class="table-responsive">
+                <table id="vehicleTable" class="vehicle-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <button type="button" class="sort-button" data-column="0">
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().OwnerName)
+                                    <span class="sort-icon">↕</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-button" data-column="1">
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().ManufacturerName)
+                                    <span class="sort-icon">↕</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-button" data-column="2">
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().YearOfManufacture)
+                                    <span class="sort-icon">↕</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-button" data-column="3">
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().WeightKg)
+                                    <span class="sort-icon">↕</span>
+                                </button>
+                            </th>
+                            <th>
+                                <button type="button" class="sort-button" data-column="4">
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().CategoryName)
+                                    <span class="sort-icon">↕</span>
+                                </button>
+                            </th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="vehicleTableBody">
+                        @foreach (var vehicle in Model.Vehicles)
+                        {
+                            var categoryImage = vehicle.CategoryName?.Trim().ToLowerInvariant() switch
+                            {
+                                "light" => Url.Content("~/images/vehicle-categories/light.jpg"),
+                                "medium" => Url.Content("~/images/vehicle-categories/medium.jpg"),
+                                "heavy" => Url.Content("~/images/vehicle-categories/heavy.jpg"),
+                                _ => Url.Content("~/images/vehicle-categories/medium.jpg")
+                            };
+
+                            <tr>
+                                <td data-sort-value="@vehicle.OwnerName">@vehicle.OwnerName</td>
+                                <td data-sort-value="@vehicle.ManufacturerName">@vehicle.ManufacturerName</td>
+                                <td data-sort-value="@vehicle.YearOfManufacture">@vehicle.YearOfManufacture</td>
+                                <td data-sort-value="@vehicle.WeightKg">@vehicle.WeightKg.ToString("0.00")</td>
+                                <td data-sort-value="@vehicle.CategoryName">
+                                    <div class="vehicle-category">
+                                        <img src="@categoryImage" alt="@vehicle.CategoryName" class="category-image" />
+                                        <span class="category-name">@vehicle.CategoryName</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>
+                                        <a asp-action="Edit" asp-route-id="@vehicle.Id" class="action-edit">Edit</a>
+                                        <a asp-action="Delete" asp-route-id="@vehicle.Id" class="action-delete">Delete</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div id="noSearchResults" class="empty-state" hidden>
+                    <h3>No matching vehicles</h3>
+                    <p>Try changing your search criteria.</p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <h3>No vehicles found</h3>
+            <p>There are no registered vehicles yet.</p>
+            <a asp-action="Create" class="btn btn-primary">Add Vehicle</a>
+        </div>
+    }
+
+    <!-- Pagination -->
+    @if (Model.TotalItems > 0)
+    {
+        <div class="pagination-container">
+            <div class="pagination-summary">
+                Showing
+                <strong>@((Model.CurrentPage - 1) * Model.PageSize + 1)</strong>
+                -
+                <strong>@Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalItems)</strong>
+                of
+                <strong>@Model.TotalItems</strong>
+                vehicles
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="pagination" aria-label="Vehicle pagination">
+
+                    @if (Model.CurrentPage > 1)
+                    {
+                        <a asp-action="Index"
+                           asp-route-page="@(Model.CurrentPage - 1)"
+                           asp-route-search="@Model.Search"
+                           asp-route-sortBy="@Model.SortBy"
+                           asp-route-sortDirection="@Model.SortDirection"
+                           class="pagination-link">
+                            &laquo; Previous
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="pagination-link disabled">&laquo; Previous</span>
+                    }
+
+                    @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+                    {
+                        if (pageNumber == Model.CurrentPage)
+                        {
+                            <span class="pagination-link active" aria-current="page">@pageNumber</span>
+                        }
+                        else
+                        {
+                            <a asp-action="Index"
+                               asp-route-page="@pageNumber"
+                               asp-route-search="@Model.Search"
+                               asp-route-sortBy="@Model.SortBy"
+                               asp-route-sortDirection="@Model.SortDirection"
+                               class="pagination-link">
+                                @pageNumber
+                            </a>
+                        }
+                    }
+
+                    @if (Model.CurrentPage < Model.TotalPages)
+                    {
+                        <a asp-action="Index"
+                           asp-route-page="@(Model.CurrentPage + 1)"
+                           asp-route-search="@Model.Search"
+                           asp-route-sortBy="@Model.SortBy"
+                           asp-route-sortDirection="@Model.SortDirection"
+                           class="pagination-link">
+                            Next &raquo;
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="pagination-link disabled">Next &raquo;</span>
+                    }
+
+                </nav>
+            }
+        </div>
+    }
+
+</div>
+
+@section Scripts
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const searchInput = document.getElementById("vehicleSearch");
+            const tableBody = document.getElementById("vehicleTableBody");
+            const noSearchResults = document.getElementById("noSearchResults");
+            const resultCount = document.getElementById("searchResultCount");
+            const sortButtons = document.querySelectorAll(".sort-button");
+
+            let sortColumn = -1;
+            let sortDirection = "asc";
+
+            // ---------- Search ----------
+            searchInput?.addEventListener("input", () => {
+                const searchText = searchInput.value.trim().toLowerCase();
+                const rows = [...tableBody.querySelectorAll("tr")];
+                let visibleRows = 0;
+
+                rows.forEach(row => {
+                    const matches = row.textContent.toLowerCase().includes(searchText);
+                    row.hidden = !matches;
+                    if (matches) visibleRows++;
+                });
+
+                resultCount.textContent = searchText
+                    ? `${visibleRows} matching vehicle${visibleRows === 1 ? "" : "s"}`
+                    : "";
+
+                noSearchResults.hidden = visibleRows !== 0;
+            });
+
+            // ---------- Sorting ----------
+            sortButtons.forEach(button => {
+                button.addEventListener("click", () => {
+                    const column = Number(button.dataset.column);
+
+                    sortDirection = sortColumn === column
+                        ? (sortDirection === "asc" ? "desc" : "asc")
+                        : "asc";
+                    sortColumn = column;
+
+                    sortRows(column, sortDirection);
+                    updateSortIcons(button, sortDirection);
+                });
+            });
+
+            function sortRows(column, direction) {
+                const rows = [...tableBody.querySelectorAll("tr")];
+                const isNumericColumn = column === 2 || column === 3; // Year, Weight
+                const collatorOptions = { sensitivity: "base" };
+
+                rows.sort((rowA, rowB) => {
+                    const cellA = rowA.cells[column];
+                    const cellB = rowB.cells[column];
+                    const valueA = cellA.dataset.sortValue ?? cellA.textContent.trim();
+                    const valueB = cellB.dataset.sortValue ?? cellB.textContent.trim();
+
+                    const result = isNumericColumn
+                        ? Number(valueA) - Number(valueB)
+                        : valueA.localeCompare(valueB, undefined, collatorOptions);
+
+                    return direction === "asc" ? result : -result;
+                });
+
+                rows.forEach(row => tableBody.appendChild(row));
+            }
+
+            function updateSortIcons(activeButton, direction) {
+                sortButtons.forEach(button => {
+                    button.classList.remove("sort-active");
+                    button.querySelector(".sort-icon").textContent = "↕";
+                });
+
+                activeButton.classList.add("sort-active");
+                activeButton.querySelector(".sort-icon").textContent = direction === "asc" ? "↑" : "↓";
+            }
+        });
+    </script>
+}

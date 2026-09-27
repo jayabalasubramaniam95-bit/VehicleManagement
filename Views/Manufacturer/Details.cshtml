@@ -1,0 +1,82 @@
+﻿@model VehicleManagement.ViewModels.ManufacturerDetailsViewModel
+
+@{
+    ViewData["Title"] = "Manufacturer Details";
+}
+
+<div class="page-container">
+
+    <div class="page-header">
+        <div>
+            <h1>Manufacturer Details</h1>
+        </div>
+
+        <div class="action-buttons">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+            <a asp-action="Index" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+
+    <!-- Manufacturer Information -->
+    <div class="details-card">
+        <div class="details-row">
+            <div class="details-label">Manufacturer</div>
+            <div class="details-value">@Model.Name</div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-label">Registered Vehicles</div>
+            <div class="details-value">@Model.VehicleCount</div>
+        </div>
+    </div>
+
+    <!-- Vehicles -->
+    <div class="section-header">
+        <div>
+            <h2>Vehicles</h2>
+            <p class="page-subtitle">Vehicles registered under this manufacturer</p>
+        </div>
+    </div>
+
+    @if (!Model.Vehicles.Any())
+    {
+        <div class="empty-state">
+            <h3>No vehicles registered</h3>
+            <p>This manufacturer does not currently have any vehicles.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="vehicle-table">
+                    <thead>
+                        <tr>
+                            <th>@Html.DisplayNameFor(m => m.Vehicles.First().OwnerName)</th>
+                            <th>@Html.DisplayNameFor(m => m.Vehicles.First().YearOfManufacture)</th>
+                            <th>@Html.DisplayNameFor(m => m.Vehicles.First().WeightKg)</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var vehicle in Model.Vehicles)
+                        {
+                            <tr>
+                                <td>@vehicle.OwnerName</td>
+                                <td>@vehicle.YearOfManufacture</td>
+                                <td>@vehicle.WeightKg.ToString("0.00")</td>
+                                <td>@vehicle.CategoryName</td>
+                                <td>
+                                    <a asp-controller="Vehicles" asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+</div>

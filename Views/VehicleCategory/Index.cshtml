@@ -1,0 +1,40 @@
+﻿@model List<VehicleManagement.Models.VehicleCategory>
+
+@{
+    ViewData["Title"] = "Vehicle Categories";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Vehicle Categories</h1>
+    </div>
+
+    <table class="table table-bordered table-striped">
+
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Minimum Weight (kg)</th>
+                <th>Maximum Weight (kg)</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var category in Model)
+            {
+                <tr>
+                    <td>@category.Name</td>
+                    <td>@category.MinWeight</td>
+                    <td>
+                        @(category.MaxWeight.HasValue
+                            ? category.MaxWeight.Value.ToString()
+                            : "No limit")
+                    </td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+
+</div>

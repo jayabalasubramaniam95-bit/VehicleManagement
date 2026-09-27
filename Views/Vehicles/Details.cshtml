@@ -1,0 +1,71 @@
+﻿@model VehicleManagement.ViewModels.VehicleDetailsViewModel
+
+@{
+    ViewData["Title"] = "Vehicle Details";
+}
+
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1>Vehicle Details</h1>
+        <p class="page-subtitle">View vehicle information</p>
+    </div>
+
+    <div class="action-buttons">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit Vehicle</a>
+        <a asp-action="Index" class="btn btn-light">Back to Vehicles</a>
+    </div>
+</div>
+
+<!-- Vehicle Details -->
+<div class="table-card">
+    <div class="vehicle-details">
+
+        <div class="detail-row">
+            <div class="detail-label">@Html.DisplayNameFor(m => m.OwnerName)</div>
+            <div class="detail-value">@Html.DisplayFor(m => m.OwnerName)</div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-label">@Html.DisplayNameFor(m => m.ManufacturerName)</div>
+            <div class="detail-value">@Html.DisplayFor(m => m.ManufacturerName)</div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-label">@Html.DisplayNameFor(m => m.YearOfManufacture)</div>
+            <div class="detail-value">@Html.DisplayFor(m => m.YearOfManufacture)</div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-label">@Html.DisplayNameFor(m => m.WeightKg)</div>
+            <div class="detail-value">@Model.WeightKg.ToString("0.00") kg</div>
+        </div>
+
+        <div class="detail-row">
+            <div class="detail-label">@Html.DisplayNameFor(m => m.CategoryName)</div>
+            <div class="detail-value">
+                @{
+                    var categoryImage = Model.CategoryName?.Trim().ToLowerInvariant() switch
+                    {
+                        "light" => Url.Content("~/images/vehicle-categories/light.jpg"),
+                        "medium" => Url.Content("~/images/vehicle-categories/medium.jpg"),
+                        "heavy" => Url.Content("~/images/vehicle-categories/heavy.jpg"),
+                        _ => Url.Content("~/images/vehicle-categories/medium.jpg")
+                    };
+                }
+
+                <div class="vehicle-category">
+                    <img src="@categoryImage" alt="@Model.CategoryName vehicle category" class="category-image" />
+                    <span class="category-name">@Model.CategoryName</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Bottom Actions -->
+<div class="form-actions">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit Vehicle</a>
+    <a asp-action="Index" class="btn btn-light">Back to Vehicles</a>
+</div>

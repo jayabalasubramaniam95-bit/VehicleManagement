@@ -1,0 +1,50 @@
+﻿@model VehicleManagement.ViewModels.ManufacturerDetailsViewModel
+
+@{
+    ViewData["Title"] = "Delete Manufacturer";
+}
+
+<div class="page-container">
+
+    <div class="page-header">
+        <div>
+            <h1>Delete Manufacturer</h1>
+        </div>
+    </div>
+
+    <div class="delete-card">
+        <div class="delete-warning">
+            <h3>Are you sure?</h3>
+            <p>You are about to delete:</p>
+            <strong>@Model.Name</strong>
+        </div>
+
+        @if (Model.VehicleCount > 0)
+        {
+            <div class="alert alert-warning">
+                <strong>This manufacturer cannot be deleted.</strong>
+                <p>It is currently associated with @Model.VehicleCount vehicle(s).</p>
+                <p>Remove or reassign those vehicles first.</p>
+            </div>
+
+            <div class="form-actions">
+                <a asp-action="Index" class="btn btn-secondary">Back to Manufacturers</a>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-danger">This action cannot be undone.</div>
+
+            <form asp-action="DeleteConfirmed" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+
+                <div class="form-actions">
+                    <a asp-action="Index" class="btn btn-light">Cancel</a>
+                    <button type="submit" class="btn btn-danger">Delete Manufacturer</button>
+                </div>
+            </form>
+        }
+    </div>
+
+</div>
