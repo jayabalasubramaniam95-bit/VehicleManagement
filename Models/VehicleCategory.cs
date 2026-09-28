@@ -16,7 +16,7 @@ public class VehicleCategory
 
     [Required]
     [StringLength(500)]
-    public string Icon { get; set; } = string.Empty;
+    public string Size { get; set; } = string.Empty;
 
     public ICollection<Vehicle> Vehicles { get; set; }
         = new List<Vehicle>();

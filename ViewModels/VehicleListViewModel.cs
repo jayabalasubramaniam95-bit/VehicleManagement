@@ -40,7 +40,7 @@ namespace VehicleManagement.ViewModels
     public int YearOfManufacture { get; set; }
 
     [Display(Name = "Weight (kg)")]
-    public decimal WeightKg { get; set; }
+    public decimal Weight { get; set; }
 
     [Display(Name = "Category")]
     public string CategoryName { get; set; } = string.Empty;

@@ -1,40 +1,144 @@
-﻿@model List<VehicleManagement.Models.VehicleCategory>
+﻿@model VehicleManagement.ViewModels.VehicleCategoryListViewModel
 
 @{
     ViewData["Title"] = "Vehicle Categories";
+
+    var alerts = new[]
+    {
+        (Key: "SuccessMessage", Type: "success", Icon: "check-circle"),
+        (Key: "ErrorMessage",   Type: "danger",  Icon: "exclamation-circle")
+    };
 }
 
-<div class="container mt-4">
+@functions {
+    // Maps a stored icon key to its Bootstrap Icons classes.
+    private static string GetIconClass(string? icon) => icon switch
+    {
+        "car-green" => "bi-car-front-fill icon-green",
+        "car-blue"  => "bi-car-front-fill icon-blue",
+        "truck-red" => "bi-truck-front-fill icon-red",
+        _           => "bi-car-front"
+    };
+}
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Vehicle Categories</h1>
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Vehicle Categories</h2>
+            <p class="text-muted mb-0">Manage vehicle weight categories</p>
+        </div>
+
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>
+            Add Category
+        </a>
     </div>
 
-    <table class="table table-bordered table-striped">
+    <!-- Success / Error Messages -->
+    @foreach (var (key, type, icon) in alerts)
+    {
+        if (TempData[key] is string message)
+        {
+            <div class="alert alert-@type alert-dismissible fade show" role="alert">
+                <i class="bi bi-@icon me-2"></i>
+                @message
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+    }
 
-        <thead>
-            <tr>
-                <th>Category</th>
-                <th>Minimum Weight (kg)</th>
-                <th>Maximum Weight (kg)</th>
-            </tr>
-        </thead>
+    <!-- Categories Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4">Name</th>
+                            <th>Weight Range</th>
+                            <th class="text-center">Size</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
 
-        <tbody>
-            @foreach (var category in Model)
-            {
-                <tr>
-                    <td>@category.Name</td>
-                    <td>@category.MinWeight</td>
-                    <td>
-                        @(category.MaxWeight.HasValue
-                            ? category.MaxWeight.Value.ToString()
-                            : "No limit")
-                    </td>
-                </tr>
-            }
-        </tbody>
+                    <tbody>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <tr>
+                                <td class="px-4 fw-semibold">@category.Name</td>
+                                <td>@category.WeightRange</td>
 
-    </table>
+                                <td class="text-center">
+                                    @* <i class="bi @GetIconClass(category.Icon) category-icon"></i> *@
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+
+                                        <a asp-action="Edit"
+                                           asp-route-id="@category.Id"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        @if (category.IsUsedByVehicles)
+                                        {
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary"
+                                                    title="Category is used by vehicles"
+                                                    disabled>
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="Delete"
+                                                  asp-route-id="@category.Id"
+                                                  method="post"
+                                                  class="d-inline"
+                                                  data-confirm="Are you sure you want to delete the category '@category.Name'?"
+                                                  onsubmit="return confirm(this.dataset.confirm);">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
+
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!Model.Categories.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                    No vehicle categories found.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Business Rule Information -->
+    <div class="alert alert-info mt-4 d-flex align-items-start">
+        <i class="bi bi-info-circle me-3 mt-1"></i>
+        <div>
+            <strong>Category weight rules</strong>
+            <div class="mt-1">
+                Category ranges must have no gaps or overlaps.
+                Every valid vehicle weight must map to exactly one category.
+            </div>
+        </div>
+    </div>
 
 </div>

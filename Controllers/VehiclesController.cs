@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using VehicleManagement.Data;
-using VehicleManagement.Models;
 using VehicleManagement.Services;
 using VehicleManagement.ViewModels;
 
@@ -10,6 +6,17 @@ namespace VehicleManagement.Controllers;
 
 public class VehiclesController : Controller
 {
+    #region Constants
+
+    private const int PageSize = 10;
+
+    private const string SuccessKey = "SuccessMessage";
+    private const string ErrorKey = "ErrorMessage";
+
+    #endregion
+
+    #region Dependencies & Constructor
+
     private readonly IVehicleService _vehicleService;
 
     public VehiclesController(IVehicleService vehicleService)
@@ -17,71 +24,63 @@ public class VehiclesController : Controller
         _vehicleService = vehicleService;
     }
 
-        [HttpGet]
-    public async Task<IActionResult> Index(
-        string? search,
-        string sortBy = "OwnerName",
-        string sortDirection = "Ascending",
-        int page = 1)
-    {
-        const int pageSize = 10;
+    #endregion
 
-        var model = await _vehicleService.GetVehiclesAsync(search, sortBy, sortDirection, page, pageSize);
-
-        return View(model);
-    }
-
+    #region List (Index)
 
     [HttpGet]
-    public async Task<IActionResult> Create()
-    {
-        var model = await _vehicleService.GetCreateViewModelAsync();
-        return View(model);
-    }
+    public ActionResult Index(string? search, int page = 1) =>
+        View(_vehicleService.GetVehicles(search, page, PageSize));
+
+    #endregion
+
+    #region Create
+
+    [HttpGet]
+    public ActionResult Create() =>
+        View(_vehicleService.GetCreateViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(VehicleFormViewModel model)
+    public ActionResult Create(VehicleFormViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            await ReloadDropdowns(model);
+            ReloadDropdowns(model);
             return View(model);
         }
 
-        var result = await _vehicleService.CreateAsync(model);
+        var result = _vehicleService.Create(model);
 
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.ErrorMessage!);
-            await ReloadDropdowns(model);
+            ReloadDropdowns(model);
             return View(model);
         }
 
-        TempData["SuccessMessage"] = "Vehicle was created successfully.";
-        return RedirectToAction(nameof(Index));
+        return RedirectWithSuccess("Vehicle was created successfully.");
     }
 
+    #endregion
+
+    #region Details
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id)
-    {
-        var model = await _vehicleService.GetDetailsAsync(id);
-        return model == null ? NotFound() : View(model);
-    }
+    public ActionResult Details(int id) =>
+        ViewOrNotFound(_vehicleService.GetDetails(id));
 
+    #endregion
+
+    #region Edit
 
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
-    {
-        var model = await _vehicleService.GetEditViewModelAsync(id);
-        return model == null ? NotFound() : View(model);
-    }
-
+    public ActionResult Edit(int id) =>
+        ViewOrNotFound(_vehicleService.GetEditViewModel(id));
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, VehicleFormViewModel model)
+    public ActionResult Edit(int id, VehicleFormViewModel model)
     {
         if (id != model.Id)
         {
@@ -90,56 +89,71 @@ public class VehiclesController : Controller
 
         if (!ModelState.IsValid)
         {
-            await ReloadDropdowns(model);
+            ReloadDropdowns(model);
             return View(model);
         }
 
-        var result = await _vehicleService.UpdateAsync(model);
+        var result = _vehicleService.Update(model);
 
         if (!result.Success)
         {
             ModelState.AddModelError(string.Empty, result.ErrorMessage!);
-            await ReloadDropdowns(model);
+            ReloadDropdowns(model);
             return View(model);
         }
 
-        TempData["SuccessMessage"] = "Vehicle was updated successfully.";
-        return RedirectToAction(nameof(Index));
+        return RedirectWithSuccess("Vehicle was updated successfully.");
     }
 
+    #endregion
+
+    #region Delete
 
     [HttpGet]
-    public async Task<IActionResult> Delete(int id)
-    {
-        var model = await _vehicleService.GetDeleteViewModelAsync(id);
-        return model == null ? NotFound() : View(model);
-    }
-
+    public ActionResult Delete(int id) =>
+        ViewOrNotFound(_vehicleService.GetDeleteViewModel(id));
 
     [HttpPost]
     [ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public ActionResult DeleteConfirmed(int id)
     {
-        var result = await _vehicleService.DeleteAsync(id);
+        var result = _vehicleService.Delete(id);
 
         if (!result.Success)
         {
-            TempData["ErrorMessage"] = result.ErrorMessage;
-            return RedirectToAction(nameof(Index));
+            return RedirectWithError(result.ErrorMessage!);
         }
 
-        TempData["SuccessMessage"] = "Vehicle was deleted successfully.";
-        return RedirectToAction(nameof(Index));
+        return RedirectWithSuccess("Vehicle was deleted successfully.");
     }
 
+    #endregion
 
-    private async Task ReloadDropdowns(VehicleFormViewModel model)
+    #region Helpers
+
+    private void ReloadDropdowns(VehicleFormViewModel model)
     {
-        var refreshed = await _vehicleService.GetCreateViewModelAsync();
+        var refreshed = _vehicleService.GetCreateViewModel();
+
         model.Manufacturers = refreshed.Manufacturers;
         model.Categories = refreshed.Categories;
     }
 
-   
+    private ActionResult ViewOrNotFound<TModel>(TModel? model) where TModel : class =>
+        model is null ? NotFound() : View(model);
+
+    private ActionResult RedirectWithSuccess(string message)
+    {
+        TempData[SuccessKey] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    private ActionResult RedirectWithError(string message)
+    {
+        TempData[ErrorKey] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    #endregion
 }

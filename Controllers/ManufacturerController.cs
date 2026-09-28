@@ -1,193 +1,135 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using VehicleManagement.Services;
 using VehicleManagement.ViewModels;
 
-namespace VehicleManagement.Controllers
-{
-    public class ManufacturerController : Controller
-    {
-         private readonly IManufacturerService _service;
+namespace VehicleManagement.Controllers;
 
-    public ManufacturerController(
-        IManufacturerService service)
+public class ManufacturerController : Controller
+{
+    #region Constants
+
+    private const int PageSize = 10;
+
+    private const string SuccessKey = "SuccessMessage";
+    private const string ErrorKey = "ErrorMessage";
+
+    private const string DuplicateNameError = "A manufacturer with this name already exists.";
+    private const string InUseError = "This manufacturer cannot be deleted because it is being used by a vehicle.";
+
+    #endregion
+
+    #region Dependencies & Constructor
+
+    private readonly IManufacturerService _service;
+
+    public ManufacturerController(IManufacturerService service)
     {
         _service = service;
     }
 
+    #endregion
 
-    // GET: /Manufacturers
+    #region List (Index)
 
-    public async Task<IActionResult> Index(
-        string? search,
-        string sortBy = "Name",
-        string sortDirection = "Ascending",
-        int page = 1)
-    {
-        const int pageSize = 10;
+    [HttpGet]
+    public ActionResult Index(string? search, int page = 1) =>
+        View(_service.GetManufacturers(search, page, PageSize));
 
-        var model =
-            await _service.GetManufacturersAsync(
-                search,
-                sortBy,
-                sortDirection,
-                page,
-                pageSize);
+    #endregion
 
-        return View(model);
-    }
+    #region Create
 
-
-    // GET: /Manufacturers/Create
-
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-
-    // POST: /Manufacturers/Create
+    [HttpGet]
+    public ActionResult Create() => View();
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        ManufacturerCreateViewModel model)
+    public ActionResult Create(ManufacturerCreateViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-
-        var created =
-            await _service.CreateAsync(model);
-
-        if (!created)
+        if (!_service.Create(model))
         {
-            ModelState.AddModelError(
-                nameof(model.Name),
-                "A manufacturer with this name already exists.");
-
+            ModelState.AddModelError(nameof(model.Name), DuplicateNameError);
             return View(model);
         }
 
-
-        TempData["SuccessMessage"] =
-            "Manufacturer created successfully.";
-
-        return RedirectToAction(nameof(Index));
+        return RedirectWithSuccess("Manufacturer created successfully.");
     }
 
+    #endregion
 
-    // GET: /Manufacturers/Details/5
+    #region Details
 
-    public async Task<IActionResult> Details(int id)
-    {
-        var model =
-            await _service.GetDetailsAsync(id);
+    [HttpGet]
+    public ActionResult Details(int id) =>
+        ViewOrNotFound(_service.GetDetailsById(id));
 
-        if (model == null)
-        {
-            return NotFound();
-        }
+    #endregion
 
-        return View(model);
-    }
+    #region Edit
 
-
-    // GET: /Manufacturers/Edit/5
-
-    public async Task<IActionResult> Edit(int id)
-    {
-        var model =
-            await _service.GetEditAsync(id);
-
-        if (model == null)
-        {
-            return NotFound();
-        }
-
-        return View(model);
-    }
-
-
-    // POST: /Manufacturers/Edit/5
+    [HttpGet]
+    public ActionResult Edit(int id) =>
+        ViewOrNotFound(_service.GetEdit(id));
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        ManufacturerEditViewModel model)
+    public ActionResult Edit(ManufacturerEditViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-
-        var updated =
-            await _service.UpdateAsync(model);
-
-        if (!updated)
+        if (!_service.Update(model))
         {
-            ModelState.AddModelError(
-                nameof(model.Name),
-                "A manufacturer with this name already exists.");
-
+            ModelState.AddModelError(nameof(model.Name), DuplicateNameError);
             return View(model);
         }
 
-
-        TempData["SuccessMessage"] =
-            "Manufacturer updated successfully.";
-
-        return RedirectToAction(nameof(Index));
+        return RedirectWithSuccess("Manufacturer updated successfully.");
     }
 
+    #endregion
 
-    // GET: /Manufacturers/Delete/5
+    #region Delete
 
-    public async Task<IActionResult> Delete(int id)
-    {
-        var model =
-            await _service.GetDetailsAsync(id);
-
-        if (model == null)
-        {
-            return NotFound();
-        }
-
-        return View(model);
-    }
-
-
-    // POST: /Manufacturers/Delete/5
+    [HttpGet]
+    public ActionResult Delete(int id) =>
+        ViewOrNotFound(_service.GetDetailsById(id));
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(
-        int id)
+    [ActionName("Delete")]
+    public ActionResult DeleteConfirmed(int id)
     {
-        var deleted =
-            await _service.DeleteAsync(id);
-
-        if (!deleted)
+        if (!_service.Delete(id))
         {
-            TempData["ErrorMessage"] =
-                "This manufacturer cannot be deleted because it is being used by a vehicle.";
-
-            return RedirectToAction(nameof(Index));
+            return RedirectWithError(InUseError);
         }
 
+        return RedirectWithSuccess("Manufacturer deleted successfully.");
+    }
 
-        TempData["SuccessMessage"] =
-            "Manufacturer deleted successfully.";
+    #endregion
 
+    #region Helpers
+
+    private ActionResult ViewOrNotFound<TModel>(TModel? model) where TModel : class =>
+        model is null ? NotFound() : View(model);
+
+    private ActionResult RedirectWithSuccess(string message)
+    {
+        TempData[SuccessKey] = message;
         return RedirectToAction(nameof(Index));
     }
-}
+
+    private ActionResult RedirectWithError(string message)
+    {
+        TempData[ErrorKey] = message;
+        return RedirectToAction(nameof(Index));
+    }
+
+    #endregion
 }

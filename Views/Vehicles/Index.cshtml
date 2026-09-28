@@ -57,7 +57,7 @@
                             </th>
                             <th>
                                 <button type="button" class="sort-button" data-column="3">
-                                    @Html.DisplayNameFor(m => m.Vehicles.First().WeightKg)
+                                    @Html.DisplayNameFor(m => m.Vehicles.First().Weight)
                                     <span class="sort-icon">↕</span>
                                 </button>
                             </th>
@@ -86,7 +86,7 @@
                                 <td data-sort-value="@vehicle.OwnerName">@vehicle.OwnerName</td>
                                 <td data-sort-value="@vehicle.ManufacturerName">@vehicle.ManufacturerName</td>
                                 <td data-sort-value="@vehicle.YearOfManufacture">@vehicle.YearOfManufacture</td>
-                                <td data-sort-value="@vehicle.WeightKg">@vehicle.WeightKg.ToString("0.00")</td>
+                                <td data-sort-value="@vehicle.Weight">@vehicle.Weight.ToString("0.00")</td>
                                 <td data-sort-value="@vehicle.CategoryName">
                                     <div class="vehicle-category">
                                         <img src="@categoryImage" alt="@vehicle.CategoryName" class="category-image" />

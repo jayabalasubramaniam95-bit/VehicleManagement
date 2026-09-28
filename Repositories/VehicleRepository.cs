@@ -6,6 +6,8 @@ namespace VehicleManagement.Repositories;
 
 public class VehicleRepository : IVehicleRepository
 {
+    #region Dependencies & Constructor
+
     private readonly ApplicationDbContext _context;
 
     public VehicleRepository(ApplicationDbContext context)
@@ -13,132 +15,98 @@ public class VehicleRepository : IVehicleRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Vehicle>> GetAllAsync()
-    {
-        return await _context.Vehicles
+    #endregion
+
+    #region Queries
+
+    public IEnumerable<Vehicle> GetAll() =>
+        _context.Vehicles
             .Include(v => v.Manufacturer)
             .OrderBy(v => v.OwnerName)
-            .ToListAsync();
-    }
+            .ToList();
 
-    public async Task<Vehicle?> GetByIdAsync(int id)
-    {
-        return await _context.Vehicles
+    public Vehicle? GetById(int id) =>
+        _context.Vehicles
             .Include(v => v.Manufacturer)
-            .FirstOrDefaultAsync(v => v.Id == id);
+            .FirstOrDefault(v => v.Id == id);
+
+    public Vehicle? GetByIdWithDetails(int id) =>
+        GetById(id);
+
+    public List<Vehicle> GetPaged(string? search, int pageNumber, int pageSize)
+    {
+        pageNumber = Math.Max(pageNumber, 1);
+        pageSize = Math.Max(pageSize, 1);
+
+        return ApplySearch(_context.Vehicles.Include(v => v.Manufacturer), search)
+            .OrderBy(v => v.OwnerName)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
     }
 
-    public async Task<Vehicle?> GetByIdWithDetailsAsync(int id)
+    public int Count(string? search) =>
+        ApplySearch(_context.Vehicles, search).Count();
+
+    #endregion
+
+    #region Existence Checks
+
+    public bool Exists(int id) =>
+        _context.Vehicles.Any(v => v.Id == id);
+
+    public bool HasManufacturer(int manufacturerId) =>
+        _context.Manufacturers.Any(m => m.Id == manufacturerId);
+
+    public bool HasCategory(int categoryId) =>
+        _context.VehicleCategories.Any(c => c.Id == categoryId);
+
+    #endregion
+
+    #region Commands
+
+    public void Add(Vehicle vehicle) =>
+        _context.Vehicles.Add(vehicle);
+
+    public void Update(Vehicle vehicle) =>
+        _context.Vehicles.Update(vehicle);
+
+    public void Delete(Vehicle vehicle) =>
+        _context.Vehicles.Remove(vehicle);
+
+    public void Delete(int id)
     {
-        return await _context.Vehicles
-            .Include(v => v.Manufacturer)
-            .FirstOrDefaultAsync(v => v.Id == id);
+        var vehicle = _context.Vehicles.FirstOrDefault(v => v.Id == id);
+
+        if (vehicle is null)
+        {
+            return;
+        }
+
+        _context.Vehicles.Remove(vehicle);
+        _context.SaveChanges();
     }
 
-    public async Task<List<Vehicle>> GetPagedAsync(
-    string? search,
-    string sortColumn,
-    string sortDirection,
-    int pageNumber,
-    int pageSize)
-{
-    var query = _context.Vehicles.Include(v => v.Manufacturer).AsQueryable();
+    public void SaveChanges() =>
+        _context.SaveChanges();
 
-    if (!string.IsNullOrWhiteSpace(search))
+    #endregion
+
+    #region Helpers
+
+    private static IQueryable<Vehicle> ApplySearch(IQueryable<Vehicle> query, string? search)
     {
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return query;
+        }
+
         search = search.Trim();
 
-        query = query.Where(v =>
+        return query.Where(v =>
             v.OwnerName.Contains(search) ||
             (v.Manufacturer != null && v.Manufacturer.Name.Contains(search)));
     }
 
-    var descending = sortDirection?.ToLower() == "desc";
-
-    query = sortColumn?.ToLower() switch
-    {
-        "ownername" => descending
-            ? query.OrderByDescending(v => v.OwnerName)
-            : query.OrderBy(v => v.OwnerName),
-
-        "manufacturer" => descending
-            ? query.OrderByDescending(v => v.Manufacturer!.Name)
-            : query.OrderBy(v => v.Manufacturer!.Name),
-
-        "year" => descending
-            ? query.OrderByDescending(v => v.YearOfManufacture)
-            : query.OrderBy(v => v.YearOfManufacture),
-
-        _ => query.OrderBy(v => v.OwnerName)
-    };
-
-    return await query
-        .Skip((pageNumber - 1) * pageSize)
-        .Take(pageSize)
-        .ToListAsync();
-}
-
-    public async Task<int> CountAsync(string? search)
-    {
-        var query = _context.Vehicles.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            search = search.Trim();
-
-            query = query
-                .Include(v => v.Manufacturer)
-                .Where(v =>
-                    v.OwnerName.Contains(search) ||
-                    (v.Manufacturer != null && v.Manufacturer.Name.Contains(search)));
-        }
-
-        return await query.CountAsync();
-    }
-
-    public async Task<bool> HasManufacturerAsync(int manufacturerId)
-    {
-        return await _context.Manufacturers.AnyAsync(m => m.Id == manufacturerId);
-    }
-
-    public async Task<bool> HasCategoryAsync(int categoryId)
-    {
-        return await _context.VehicleCategories.AnyAsync(c => c.Id == categoryId);
-    }
-
-    public async Task AddAsync(Vehicle vehicle)
-    {
-        await _context.Vehicles.AddAsync(vehicle);
-    }
-
-    public void Update(Vehicle vehicle)
-    {
-        _context.Vehicles.Update(vehicle);
-    }
-
-    public void Delete(Vehicle vehicle)
-    {
-        _context.Vehicles.Remove(vehicle);
-    }
-
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task<bool> ExistsAsync(int id)
-    {
-        return await _context.Vehicles.AnyAsync(v => v.Id == id);
-    }
-
-    public async Task DeleteAsync(int id)
-    {
-        var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
-
-        if (vehicle != null)
-        {
-            _context.Vehicles.Remove(vehicle);
-            await _context.SaveChangesAsync();
-        }
-    }
+    #endregion
 }

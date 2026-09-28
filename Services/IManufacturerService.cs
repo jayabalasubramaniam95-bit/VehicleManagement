@@ -8,23 +8,15 @@ namespace VehicleManagement.Services
 {
     public interface IManufacturerService
     {
-         Task<ManufacturerListViewModel> GetManufacturersAsync(
-        string? search,
-        string sortBy,
-        string sortDirection,
-        int page,
-        int pageSize);
+    ManufacturerListViewModel GetManufacturers( string? search, int page, int pageSize);
 
-    Task<ManufacturerDetailsViewModel?> GetDetailsAsync(int id);
+    ManufacturerDetailsViewModel GetDetailsById(int id);
 
-    Task<bool> CreateAsync(
-        ManufacturerCreateViewModel model);
+    ManufacturerEditViewModel GetEdit(int id);
+    bool Create(ManufacturerCreateViewModel model);
 
-    Task<ManufacturerEditViewModel?> GetEditAsync(int id);
+    bool Update(ManufacturerEditViewModel model);
 
-    Task<bool> UpdateAsync(
-        ManufacturerEditViewModel model);
-
-    Task<bool> DeleteAsync(int id);
+    bool Delete(int id);
     }
 }

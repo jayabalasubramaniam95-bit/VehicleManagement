@@ -7,6 +7,19 @@ namespace VehicleManagement.Services;
 
 public class VehicleService : IVehicleService
 {
+    #region Constants
+
+    private const int DefaultPageSize = 10;
+    private const string Unknown = "Unknown";
+
+    private const string VehicleNotFoundError = "Vehicle could not be found.";
+    private const string ManufacturerNotFoundError = "The selected manufacturer does not exist.";
+    private const string CategoryNotFoundError = "The selected vehicle category does not exist.";
+
+    #endregion
+
+    #region Dependencies & Constructor
+
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IManufacturerRepository _manufacturerRepository;
     private readonly IVehicleCategoryRepository _vehicleCategoryRepository;
@@ -21,39 +34,36 @@ public class VehicleService : IVehicleService
         _vehicleCategoryRepository = vehicleCategoryRepository;
     }
 
-    // ---------- Index ----------
+    #endregion
 
-    public async Task<VehicleListViewModel> GetVehiclesAsync(
+    #region List (Search, Paging)
+
+    public VehicleListViewModel GetVehicles(
         string? search,
-        string sortBy,
-        string sortDirection,
         int page,
         int pageSize)
     {
-        if (page < 1) page = 1;
-        if (pageSize <= 0) pageSize = 10;
-        if (string.IsNullOrWhiteSpace(sortBy)) sortBy = "OwnerName";
-        if (string.IsNullOrWhiteSpace(sortDirection)) sortDirection = "Ascending";
-
-        var totalItems = await _vehicleRepository.CountAsync(search);
-        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-        if (totalPages > 0 && page > totalPages)
+        if (pageSize <= 0)
         {
-            page = totalPages;
+            pageSize = DefaultPageSize;
         }
 
-        var vehicles = await _vehicleRepository.GetPagedAsync(search, sortBy, sortDirection, page, pageSize);
+        var totalItems = _vehicleRepository.Count(search);
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        var items = vehicles
+        // Keep the page inside 1..totalPages (page 1 when there are no results).
+        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
+
+        var items = _vehicleRepository
+            .GetPaged(search, page, pageSize)
             .Select(vehicle => new VehicleListItemViewModel
             {
                 Id = vehicle.Id,
                 OwnerName = vehicle.OwnerName,
-                ManufacturerName = vehicle.Manufacturer?.Name ?? "Unknown",
+                ManufacturerName = vehicle.Manufacturer?.Name ?? Unknown,
                 YearOfManufacture = vehicle.YearOfManufacture,
-                WeightKg = vehicle.WeightKg,
-                CategoryName = vehicle.Category?.Name ?? "Unknown"
+                Weight = vehicle.Weight,
+                CategoryName = vehicle.Category?.Name ?? Unknown
             })
             .ToList();
 
@@ -61,8 +71,6 @@ public class VehicleService : IVehicleService
         {
             Vehicles = items,
             Search = search,
-            SortBy = sortBy,
-            SortDirection = sortDirection,
             CurrentPage = page,
             PageSize = pageSize,
             TotalItems = totalItems,
@@ -70,59 +78,68 @@ public class VehicleService : IVehicleService
         };
     }
 
-    // ---------- Details ----------
+    #endregion
 
-    public async Task<VehicleDetailsViewModel?> GetDetailsAsync(int id)
+    #region Details
+
+    // Returns null when the id does not exist.
+    public VehicleDetailsViewModel? GetDetails(int id)
     {
-        var vehicle = await _vehicleRepository.GetByIdWithDetailsAsync(id);
-        return vehicle == null ? null : MapToDetailsViewModel(vehicle);
+        var vehicle = _vehicleRepository.GetByIdWithDetails(id);
+
+        return vehicle is null ? null : MapToDetailsViewModel(vehicle);
     }
 
-    // ---------- Create (GET) ----------
+    #endregion
 
-    public async Task<VehicleFormViewModel> GetCreateViewModelAsync()
+    #region Create
+
+    public VehicleFormViewModel GetCreateViewModel()
     {
         var model = new VehicleFormViewModel();
-        await PopulateDropdownsAsync(model);
+
+        PopulateDropdowns(model);
+
         return model;
     }
 
-    // ---------- Create (POST) ----------
-
-    public async Task<(bool Success, string? ErrorMessage)> CreateAsync(VehicleFormViewModel model)
+    // The category is not chosen by the user. It is derived from the weight.
+    public (bool Success, string? ErrorMessage) Create(VehicleFormViewModel model)
     {
-        if (!await _vehicleRepository.HasManufacturerAsync(model.ManufacturerId))
+        if (!_vehicleRepository.HasManufacturer(model.ManufacturerId))
         {
-            return (false, "The selected manufacturer does not exist.");
+            return (false, ManufacturerNotFoundError);
         }
 
-        if (!await _vehicleRepository.HasCategoryAsync(model.CategoryId))
+        if (!TryResolveCategoryId(model.Weight, out var categoryId))
         {
-            return (false, "The selected vehicle category does not exist.");
+            return (false, CategoryNotFoundError);
         }
 
-        var vehicle = new Vehicle
+        _vehicleRepository.Add(new Vehicle
         {
             OwnerName = model.OwnerName.Trim(),
             ManufacturerId = model.ManufacturerId,
             YearOfManufacture = model.YearOfManufacture,
-            WeightKg = model.WeightKg,
-            CategoryId = model.CategoryId
-        };
+            Weight = model.Weight,
+            CategoryId = categoryId
+        });
 
-        await _vehicleRepository.AddAsync(vehicle);
-        await _vehicleRepository.SaveChangesAsync();
+        _vehicleRepository.SaveChanges();
 
         return (true, null);
     }
 
-    // ---------- Edit (GET) ----------
+    #endregion
 
-    public async Task<VehicleFormViewModel?> GetEditViewModelAsync(int id)
+    #region Edit
+
+    // Loads the data for the edit form (null when the id does not exist).
+    public VehicleFormViewModel? GetEditViewModel(int id)
     {
-        var vehicle = await _vehicleRepository.GetByIdAsync(id);
+        var vehicle = _vehicleRepository.GetById(id);
 
-        if (vehicle == null)
+        if (vehicle is null)
         {
             return null;
         }
@@ -133,99 +150,108 @@ public class VehicleService : IVehicleService
             OwnerName = vehicle.OwnerName,
             ManufacturerId = vehicle.ManufacturerId,
             YearOfManufacture = vehicle.YearOfManufacture,
-            WeightKg = vehicle.WeightKg,
+            Weight = vehicle.Weight,
             CategoryId = vehicle.CategoryId
         };
 
-        await PopulateDropdownsAsync(model);
+        PopulateDropdowns(model);
 
         return model;
     }
 
-    // ---------- Edit (POST) ----------
-
-    public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(VehicleFormViewModel model)
+    // The category is re-derived from the weight on every update.
+    public (bool Success, string? ErrorMessage) Update(VehicleFormViewModel model)
     {
-        var vehicle = await _vehicleRepository.GetByIdAsync(model.Id);
+        var vehicle = _vehicleRepository.GetById(model.Id);
 
-        if (vehicle == null)
+        if (vehicle is null)
         {
-            return (false, "Vehicle could not be found.");
+            return (false, VehicleNotFoundError);
         }
 
-        if (!await _vehicleRepository.HasManufacturerAsync(model.ManufacturerId))
+        if (!_vehicleRepository.HasManufacturer(model.ManufacturerId))
         {
-            return (false, "The selected manufacturer does not exist.");
+            return (false, ManufacturerNotFoundError);
         }
 
-        if (!await _vehicleRepository.HasCategoryAsync(model.CategoryId))
+        if (!TryResolveCategoryId(model.Weight, out var categoryId))
         {
-            return (false, "The selected vehicle category does not exist.");
+            return (false, CategoryNotFoundError);
         }
 
         vehicle.OwnerName = model.OwnerName.Trim();
         vehicle.ManufacturerId = model.ManufacturerId;
         vehicle.YearOfManufacture = model.YearOfManufacture;
-        vehicle.WeightKg = model.WeightKg;
-        vehicle.CategoryId = model.CategoryId;
+        vehicle.Weight = model.Weight;
+        vehicle.CategoryId = categoryId;
 
         _vehicleRepository.Update(vehicle);
-        await _vehicleRepository.SaveChangesAsync();
+        _vehicleRepository.SaveChanges();
 
         return (true, null);
     }
 
-    // ---------- Delete (GET) ----------
+    #endregion
 
-    public Task<VehicleDetailsViewModel?> GetDeleteViewModelAsync(int id) => GetDetailsAsync(id);
+    #region Delete
 
-    // ---------- Delete (POST) ----------
+    public VehicleDetailsViewModel? GetDeleteViewModel(int id) =>
+        GetDetails(id);
 
-    public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id)
+    public (bool Success, string? ErrorMessage) Delete(int id)
     {
-        var vehicle = await _vehicleRepository.GetByIdAsync(id);
+        var vehicle = _vehicleRepository.GetById(id);
 
-        if (vehicle == null)
+        if (vehicle is null)
         {
-            return (false, "Vehicle could not be found.");
+            return (false, VehicleNotFoundError);
         }
 
         _vehicleRepository.Delete(vehicle);
-        await _vehicleRepository.SaveChangesAsync();
+        _vehicleRepository.SaveChanges();
 
         return (true, null);
     }
 
-    // ---------- Dropdowns ----------
+    #endregion
 
-    private async Task PopulateDropdownsAsync(VehicleFormViewModel model)
+    #region Helpers
+
+    // Finds the category whose weight range contains the given weight.
+    private bool TryResolveCategoryId(decimal weight, out int categoryId)
     {
-        var manufacturers = await _manufacturerRepository.GetAllAsync();
-        var categories = await _vehicleCategoryRepository.GetAllAsync();
+        var category = _vehicleCategoryRepository.GetByWeight(weight);
 
-        model.Manufacturers = manufacturers
-            .OrderBy(m => m.Name)
+        categoryId = category?.Id ?? 0;
+
+        return category is not null;
+    }
+
+    private void PopulateDropdowns(VehicleFormViewModel model)
+    {
+        // The repository already returns manufacturers ordered by name.
+        model.Manufacturers = _manufacturerRepository
+            .GetAll()
             .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
             .ToList();
 
-        model.Categories = categories
+        model.Categories = _vehicleCategoryRepository
+            .GetAll()
             .OrderBy(c => c.Name)
             .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
             .ToList();
     }
 
-    // ---------- Mapping ----------
-
-    private static VehicleDetailsViewModel MapToDetailsViewModel(Vehicle vehicle)
-    {
-        return new VehicleDetailsViewModel
+    private static VehicleDetailsViewModel MapToDetailsViewModel(Vehicle vehicle) =>
+        new()
         {
             Id = vehicle.Id,
             OwnerName = vehicle.OwnerName,
-            ManufacturerName = vehicle.Manufacturer?.Name ?? "Unknown",
+            ManufacturerName = vehicle.Manufacturer?.Name ?? Unknown,
             YearOfManufacture = vehicle.YearOfManufacture,
-            WeightKg = vehicle.WeightKg,
-            CategoryName = vehicle.Category?.Name ?? "Unknown"
+            WeightKg = vehicle.Weight,
+            CategoryName = vehicle.Category?.Name ?? Unknown
         };
-    }
+
+    #endregion
 }

@@ -1,268 +1,178 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using VehicleManagement.Models;
 using VehicleManagement.Repositories;
 using VehicleManagement.ViewModels;
-using Microsoft.EntityFrameworkCore;
 
-namespace VehicleManagement.Services
+namespace VehicleManagement.Services;
+
+public class ManufacturerService : IManufacturerService
 {
-    public class ManufacturerService: IManufacturerService
-    {
-         private readonly IManufacturerRepository _repository;
+    #region Dependencies & Constructor
 
-    public ManufacturerService(
-        IManufacturerRepository repository)
+    private readonly IManufacturerRepository _repository;
+
+    public ManufacturerService(IManufacturerRepository repository)
     {
         _repository = repository;
     }
 
+    #endregion
 
-    public async Task<ManufacturerListViewModel>
-        GetManufacturersAsync(
-            string? search,
-            string sortBy,
-            string sortDirection,
-            int page,
-            int pageSize)
+    #region List (Search, Paging)
+
+    public ManufacturerListViewModel GetManufacturers(
+        string? search,
+        int page,
+        int pageSize)
     {
+        pageSize = Math.Max(pageSize, 1);
+        search = search?.Trim();
+
         var query = _repository.GetQueryable();
 
-
-        // Search
-
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrEmpty(search))
         {
-            search = search.Trim();
-
-            query = query.Where(m =>
-                m.Name.Contains(search));
+            query = query.Where(m => m.Name.Contains(search));
         }
 
+        var totalItems = query.Count();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        // Sorting
+        // Keep the page inside 1..totalPages (page 1 when there are no results).
+        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
 
-        query = sortDirection == "Descending"
-            ? query.OrderByDescending(m => m.Name)
-            : query.OrderBy(m => m.Name);
-
-
-        // Count
-
-        var totalItems =
-            await query.CountAsync();
-
-
-        var totalPages =
-            (int)Math.Ceiling(
-                totalItems / (double)pageSize);
-
-
-        if (page < 1)
-        {
-            page = 1;
-        }
-
-        if (totalPages > 0 &&
-            page > totalPages)
-        {
-            page = totalPages;
-        }
-
-
-        // Pagination
-
-        var manufacturers =
-            await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(m => new ManufacturerListItemViewModel
-                {
-                    Id = m.Id,
-
-                    Name = m.Name,
-
-                    VehicleCount = m.Vehicles.Count
-                })
-                .ToListAsync();
-
+        var items = query
+            .OrderBy(m => m.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new ManufacturerListItemViewModel
+            {
+                Id = m.Id,
+                Name = m.Name,
+                VehicleCount = m.Vehicles.Count
+            })
+            .ToList();
 
         return new ManufacturerListViewModel
         {
-            Manufacturers = manufacturers,
-
+            Manufacturers = items,
             Search = search,
-
-            SortBy = sortBy,
-
-            SortDirection = sortDirection,
-
             CurrentPage = page,
-
             PageSize = pageSize,
-
             TotalItems = totalItems,
-
             TotalPages = totalPages
         };
     }
 
+    #endregion
 
-    public async Task<ManufacturerDetailsViewModel?>
-        GetDetailsAsync(int id)
+    #region Details
+
+    public ManufacturerDetailsViewModel? GetDetailsById(int id)
     {
-        var manufacturer =
-            await _repository.GetByIdAsync(id);
+        var manufacturer = _repository.GetByIdWithVehicles(id);
 
-        if (manufacturer == null)
+        if (manufacturer is null)
         {
             return null;
         }
-
 
         return new ManufacturerDetailsViewModel
         {
             Id = manufacturer.Id,
-
             Name = manufacturer.Name,
-
-            VehicleCount =
-                manufacturer.Vehicles.Count,
-
-            Vehicles =
-                manufacturer.Vehicles
-                    .Select(v => new VehicleListItemViewModel
-                    {
-                        Id = v.Id,
-
-                        OwnerName = v.OwnerName,
-
-                        ManufacturerName =
-                            manufacturer.Name,
-
-                        YearOfManufacture =
-                            v.YearOfManufacture,
-
-                        WeightKg =
-                            v.WeightKg,
-
-                        CategoryName =
-                            v.Category?.Name ?? string.Empty
-                    })
-                    .ToList()
+            VehicleCount = manufacturer.Vehicles.Count,
+            Vehicles = manufacturer.Vehicles
+                .Select(v => new VehicleListItemViewModel
+                {
+                    Id = v.Id,
+                    OwnerName = v.OwnerName,
+                    ManufacturerName = manufacturer.Name,
+                    YearOfManufacture = v.YearOfManufacture,
+                    Weight = v.Weight,
+                    CategoryName = v.Category?.Name ?? string.Empty
+                })
+                .ToList()
         };
     }
 
+    #endregion
 
-    public async Task<bool> CreateAsync(
-        ManufacturerCreateViewModel model)
+    #region Create
+
+    public bool Create(ManufacturerCreateViewModel model)
     {
         var name = model.Name.Trim();
 
-
-        if (await _repository.NameExistsAsync(name))
+        if (_repository.NameExists(name))
         {
             return false;
         }
 
-
-        var manufacturer = new Manufacturer
-        {
-            Name = name
-        };
-
-
-        await _repository.AddAsync(
-            manufacturer);
-
-        await _repository.SaveChangesAsync();
+        _repository.Add(new Manufacturer { Name = name });
+        _repository.SaveChanges();
 
         return true;
     }
 
+    #endregion
 
-    public async Task<ManufacturerEditViewModel?>
-        GetEditAsync(int id)
+    #region Edit
+
+    public ManufacturerEditViewModel? GetEdit(int id)
     {
-        var manufacturer =
-            await _repository.GetByIdAsync(id);
+        var manufacturer = _repository.GetById(id);
 
-        if (manufacturer == null)
-        {
-            return null;
-        }
-
-
-        return new ManufacturerEditViewModel
-        {
-            Id = manufacturer.Id,
-
-            Name = manufacturer.Name
-        };
+        return manufacturer is null
+            ? null
+            : new ManufacturerEditViewModel
+            {
+                Id = manufacturer.Id,
+                Name = manufacturer.Name
+            };
     }
 
-
-    public async Task<bool> UpdateAsync(
-        ManufacturerEditViewModel model)
+    public bool Update(ManufacturerEditViewModel model)
     {
-        var manufacturer =
-            await _repository.GetByIdAsync(model.Id);
+        var manufacturer = _repository.GetById(model.Id);
 
-        if (manufacturer == null)
+        if (manufacturer is null)
         {
             return false;
         }
-
 
         var name = model.Name.Trim();
 
-
-        if (await _repository.NameExistsAsync(
-                name,
-                model.Id))
+        if (_repository.NameExists(name, excludeId: model.Id))
         {
             return false;
         }
-
 
         manufacturer.Name = name;
 
-
         _repository.Update(manufacturer);
-
-        await _repository.SaveChangesAsync();
+        _repository.SaveChanges();
 
         return true;
     }
 
+    #endregion
 
-    public async Task<bool> DeleteAsync(int id)
+    #region Delete
+
+    public bool Delete(int id)
     {
-        var manufacturer =
-            await _repository.GetByIdAsync(id);
+        var manufacturer = _repository.GetById(id);
 
-        if (manufacturer == null)
+        if (manufacturer is null || _repository.HasVehicles(id))
         {
             return false;
         }
-
-
-        // Do not delete a manufacturer
-        // that is used by vehicles.
-
-        if (await _repository.HasVehiclesAsync(id))
-        {
-            return false;
-        }
-
 
         _repository.Delete(manufacturer);
-
-        await _repository.SaveChangesAsync();
+        _repository.SaveChanges();
 
         return true;
     }
-    }
+
+    #endregion
 }

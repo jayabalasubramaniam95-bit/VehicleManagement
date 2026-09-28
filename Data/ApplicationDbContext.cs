@@ -31,7 +31,7 @@ namespace VehicleManagement.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Vehicle>()
-                .Property(v => v.WeightKg)
+                .Property(v => v.Weight)
                 .HasPrecision(10, 2);
 
             SeedManufacturers(modelBuilder);
@@ -52,9 +52,9 @@ namespace VehicleManagement.Data
         private static void SeedVehicleCategories(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<VehicleCategory>().HasData(
-                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, Icon = "light" },
-                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, Icon = "medium" },
-                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, Icon = "heavy" }
+                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, Size = "light" },
+                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, Size = "medium" },
+                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, Size = "heavy" }
             );
         }
     }

@@ -258,3 +258,32 @@ pointer-events: none;
 
 }
 
+.category-icon {
+    font-size: 1.45rem;
+}
+
+.icon-green {
+    color: #28a745;
+}
+
+.icon-blue {
+    color: #0d6efd;
+}
+
+.icon-red {
+    color: #dc3545;
+}
+
+.table > :not(caption) > * > * {
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.card {
+    border-radius: 10px;
+}
+
+.btn {
+    border-radius: 6px;
+}
+

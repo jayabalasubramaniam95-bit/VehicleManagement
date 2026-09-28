@@ -54,7 +54,7 @@
                         <tr>
                             <th>@Html.DisplayNameFor(m => m.Vehicles.First().OwnerName)</th>
                             <th>@Html.DisplayNameFor(m => m.Vehicles.First().YearOfManufacture)</th>
-                            <th>@Html.DisplayNameFor(m => m.Vehicles.First().WeightKg)</th>
+                            <th>@Html.DisplayNameFor(m => m.Vehicles.First().Weight)</th>
                             <th>Category</th>
                             <th>Actions</th>
                         </tr>
@@ -66,7 +66,7 @@
                             <tr>
                                 <td>@vehicle.OwnerName</td>
                                 <td>@vehicle.YearOfManufacture</td>
-                                <td>@vehicle.WeightKg.ToString("0.00")</td>
+                                <td>@vehicle.Weight.ToString("0.00")</td>
                                 <td>@vehicle.CategoryName</td>
                                 <td>
                                     <a asp-controller="Vehicles" asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>

@@ -1,40 +1,41 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using VehicleManagement.Models;
 
-namespace VehicleManagement.Repositories
+namespace VehicleManagement.Repositories;
+
+public interface IVehicleRepository
 {
-    public interface IVehicleRepository
-{
-    Task<int> CountAsync(string? search);
-    Task<IEnumerable<Vehicle>> GetAllAsync();
+    #region Queries
 
+    IEnumerable<Vehicle> GetAll();
 
-    Task<List<Vehicle>> GetPagedAsync(
-    string? search,
-    string sortBy,
-    string sortDirection,
-    int page,
-    int pageSize);
+    Vehicle? GetById(int id);
 
-    Task<Vehicle?> GetByIdAsync(int id);
+    Vehicle? GetByIdWithDetails(int id);
 
-    Task<Vehicle?> GetByIdWithDetailsAsync(int id);
+    List<Vehicle> GetPaged(string? search, int pageNumber, int pageSize);
 
-    Task AddAsync(Vehicle vehicle);
+    int Count(string? search);
+
+    #endregion
+
+    #region Existence Checks
+
+    bool Exists(int id);
+    bool HasManufacturer(int manufacturerId);
+
+    bool HasCategory(int categoryId);
+
+    #endregion
+
+    #region Commands
+
+    void Add(Vehicle vehicle);
 
     void Update(Vehicle vehicle);
 
     void Delete(Vehicle vehicle);
 
-    Task<bool> ExistsAsync(int id);
+    void SaveChanges();
 
-    Task<bool> HasManufacturerAsync(int manufacturerId);
-
-    Task<bool> HasCategoryAsync(int categoryId);
-
-    Task SaveChangesAsync();
-}
+    #endregion
 }

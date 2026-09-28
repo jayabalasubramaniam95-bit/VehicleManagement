@@ -32,7 +32,7 @@ namespace VehicleManagement.ViewModels
     [Required]
     [Range(0.01, double.MaxValue)]
     [Display(Name = "Weight (kg)")]
-    public decimal WeightKg { get; set; }
+    public decimal Weight { get; set; }
 
 
     [Required]

@@ -4,24 +4,39 @@ namespace VehicleManagement.Services;
 
 public interface IVehicleService
 {
-    Task<VehicleListViewModel> GetVehiclesAsync(
-        string? search,
-        string sortBy,
-        string sortDirection,
-        int page,
-        int pageSize);
+    #region List (Search, Paging)
 
-    Task<VehicleDetailsViewModel?> GetDetailsAsync(int id);
+    VehicleListViewModel GetVehicles(string? search, int page, int pageSize);
 
-    Task<VehicleFormViewModel> GetCreateViewModelAsync();
+    #endregion
 
-    Task<VehicleFormViewModel?> GetEditViewModelAsync(int id);
+    #region Details
 
-    Task<(bool Success, string? ErrorMessage)> CreateAsync(VehicleFormViewModel model);
+    VehicleDetailsViewModel? GetDetails(int id);
 
-    Task<(bool Success, string? ErrorMessage)> UpdateAsync(VehicleFormViewModel model);
+    #endregion
 
-    Task<VehicleDetailsViewModel?> GetDeleteViewModelAsync(int id);
+    #region Create
 
-    Task<(bool Success, string? ErrorMessage)> DeleteAsync(int id);
+    VehicleFormViewModel GetCreateViewModel();
+
+    (bool Success, string? ErrorMessage) Create(VehicleFormViewModel model);
+
+    #endregion
+
+    #region Edit
+
+    VehicleFormViewModel? GetEditViewModel(int id);
+
+    (bool Success, string? ErrorMessage) Update(VehicleFormViewModel model);
+
+    #endregion
+
+    #region Delete
+
+    VehicleDetailsViewModel? GetDeleteViewModel(int id);
+
+    (bool Success, string? ErrorMessage) Delete(int id);
+
+    #endregion
 }

@@ -22,7 +22,7 @@ public class Vehicle
 
     [Required]
     [Range(0.01, double.MaxValue)]
-    public decimal WeightKg { get; set; }
+    public decimal Weight { get; set; }
 
     [Required]
     public int CategoryId { get; set; }

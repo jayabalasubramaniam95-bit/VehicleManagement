@@ -43,17 +43,9 @@
         </div>
 
         <div class="form-group">
-            <label asp-for="WeightKg" class="form-label"></label>
-            <input asp-for="WeightKg" type="number" step="0.01" class="form-control" placeholder="Enter weight in kg" />
-            <span asp-validation-for="WeightKg" class="text-danger"></span>
-        </div>
-
-        <div class="form-group">
-            <label asp-for="CategoryId" class="form-label"></label>
-            <select asp-for="CategoryId" asp-items="Model.Categories" class="form-control">
-                <option value="">-- Select Category --</option>
-            </select>
-            <span asp-validation-for="CategoryId" class="text-danger"></span>
+            <label asp-for="Weight" class="form-label"></label>
+            <input asp-for="Weight" type="number" step="0.01" class="form-control" placeholder="Enter weight in kg" />
+            <span asp-validation-for="Weight" class="text-danger"></span>
         </div>
 
         <div class="form-actions">
