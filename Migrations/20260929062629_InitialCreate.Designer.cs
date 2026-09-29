@@ -12,7 +12,7 @@ using VehicleManagement.Data;
 namespace VehicleManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260929020730_InitialCreate")]
+    [Migration("20260929062629_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -61,47 +61,47 @@ namespace VehicleManagement.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDefault = true,
                             IsDeleted = false,
                             Name = "Mazda",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDefault = true,
                             IsDeleted = false,
                             Name = "Mercedes",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDefault = true,
                             IsDeleted = false,
                             Name = "Honda",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDefault = true,
                             IsDeleted = false,
                             Name = "Ferrari",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDefault = true,
                             IsDeleted = false,
                             Name = "Toyota",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -160,19 +160,24 @@ namespace VehicleManagement.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Icon")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<decimal?>("MaxWeight")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("MinWeight")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Size")
                         .IsRequired()
@@ -190,34 +195,34 @@ namespace VehicleManagement.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             MaxWeight = 500m,
                             MinWeight = 0m,
                             Name = "Light",
                             Size = "light",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             MaxWeight = 2500m,
                             MinWeight = 500m,
                             Name = "Medium",
                             Size = "medium",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified),
                             IsDeleted = false,
                             MinWeight = 2500m,
                             Name = "Heavy",
                             Size = "heavy",
-                            UpdatedAt = new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         });
                 });
 

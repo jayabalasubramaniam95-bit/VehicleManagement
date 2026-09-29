@@ -1,39 +1,46 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using VehicleManagement.Models;
 
-namespace VehicleManagement.Repositories
+namespace VehicleManagement.Repositories;
+
+/// <summary>Read projection for the list page: one query instead of one HasVehicles call per row.</summary>
+public record VehicleCategorySummary(
+    int Id, string Name, string? Icon, decimal MinWeight, decimal? MaxWeight, int VehicleCount);
+
+/// <summary>Contains only what VehicleCategoryService needs.</summary>
+public interface IVehicleCategoryRepository
 {
-    public interface IVehicleCategoryRepository
-    {
-        #region Queries
+    #region Queries
 
-        List<VehicleCategory> GetAll();
+    List<VehicleCategorySummary> GetSummaries();
 
-        VehicleCategory? GetById(int id);
+    /// <summary>All active categories, tracked, ordered by MinWeight (used by write operations).</summary>
+    List<VehicleCategory> GetAll();
 
-        VehicleCategory? GetByWeight(decimal weight);
+    /// <summary>Single category, not tracked (used to fill the edit form).</summary>
+    VehicleCategory? GetById(int id);
 
-        List<VehicleCategory> GetCategoriesExcept(int id);
+    VehicleCategory? GetByWeight(decimal weight);
 
-        #endregion
+    #endregion
 
-        #region Existence Checks
+    #region Existence Checks
 
-        bool NameExists(string name, int? excludeId = null);
+    bool NameExists(string name, int? excludeId = null);
 
-        bool HasVehicles(int categoryId);
+    bool HasVehicles(int categoryId);
 
-        #endregion
+    #endregion
 
-        #region Commands
+    #region Commands
 
-        void Update(VehicleCategory category);
+    void Add(VehicleCategory category);
 
-        void SaveChanges();
+    void Update(VehicleCategory category);
 
-        #endregion
-    }
+    void SaveChanges();
+
+    /// <summary>Runs several SaveChanges calls as one all-or-nothing unit.</summary>
+    void InTransaction(Action work);
+
+    #endregion
 }

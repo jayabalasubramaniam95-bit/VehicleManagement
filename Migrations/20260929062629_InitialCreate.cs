@@ -36,13 +36,14 @@ namespace VehicleManagement.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    MinWeight = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    MaxWeight = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    MinWeight = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    MaxWeight = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     Size = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    Icon = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -86,21 +87,21 @@ namespace VehicleManagement.Migrations
                 columns: new[] { "Id", "CreatedAt", "IsDefault", "IsDeleted", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), true, false, "Mazda", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 2, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), true, false, "Mercedes", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 3, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), true, false, "Honda", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 4, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), true, false, "Ferrari", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 5, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), true, false, "Toyota", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                    { 1, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), true, false, "Mazda", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 2, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), true, false, "Mercedes", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 3, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), true, false, "Honda", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 4, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), true, false, "Ferrari", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 5, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), true, false, "Toyota", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) }
                 });
 
             migrationBuilder.InsertData(
                 table: "VehicleCategories",
-                columns: new[] { "Id", "CreatedAt", "IsDeleted", "MaxWeight", "MinWeight", "Name", "Size", "UpdatedAt" },
+                columns: new[] { "Id", "CreatedAt", "Icon", "IsDeleted", "MaxWeight", "MinWeight", "Name", "Size", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), false, 500m, 0m, "Light", "light", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 2, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), false, 2500m, 500m, "Medium", "medium", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 3, new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), false, null, 2500m, "Heavy", "heavy", new DateTime(2026, 9, 29, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                    { 1, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), null, false, 500m, 0m, "Light", "light", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 2, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), null, false, 2500m, 500m, "Medium", "medium", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) },
+                    { 3, new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified), null, false, null, 2500m, "Heavy", "heavy", new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified) }
                 });
 
             migrationBuilder.CreateIndex(

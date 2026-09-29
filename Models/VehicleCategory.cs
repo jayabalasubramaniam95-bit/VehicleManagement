@@ -26,4 +26,6 @@ public class VehicleCategory
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsDeleted { get; set; } = false;
+
+    public string? Icon { get; set; }
 }

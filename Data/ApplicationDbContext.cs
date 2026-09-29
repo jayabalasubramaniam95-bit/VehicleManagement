@@ -31,6 +31,12 @@ namespace VehicleManagement.Data
                     .HasForeignKey(v => v.ManufacturerId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+            modelBuilder.Entity<VehicleCategory>(e =>
+            {
+                e.Property(c => c.Name).IsRequired().HasMaxLength(50);
+                e.Property(c => c.MinWeight).HasPrecision(18, 2);
+                e.Property(c => c.MaxWeight).HasPrecision(18, 2);
+            });
 
             modelBuilder.Entity<Vehicle>()
                 .HasOne(v => v.Manufacturer)

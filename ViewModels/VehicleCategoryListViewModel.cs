@@ -1,34 +1,27 @@
-namespace VehicleManagement.ViewModels
+using System.Globalization;
+
+namespace VehicleManagement.ViewModels;
+
+public class VehicleCategoryListViewModel
 {
-     public class VehicleCategoryListViewModel
-    {
-        public List<VehicleCategoryItemViewModel> Categories { get; set; } = new();
-    }
+    public List<VehicleCategoryItemViewModel> Categories { get; init; } = new();
+}
 
-    public class VehicleCategoryItemViewModel
-    {
-        public int Id { get; set; }
+public class VehicleCategoryItemViewModel
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? Icon { get; init; }
+    public decimal MinWeight { get; init; }
+    public decimal? MaxWeight { get; init; }
+    public int VehicleCount { get; init; }
 
-        public string Name { get; set; } = string.Empty;
+    public bool IsUsedByVehicles => VehicleCount > 0;
 
-        public decimal MinWeight { get; set; }
+    public string WeightRange => MaxWeight is { } max
+        ? $"{MinWeight:0.##} – {max:0.##} kg"
+        : $"{MinWeight:0.##} kg and above";
 
-        public decimal? MaxWeight { get; set; }
-
-
-        public string WeightRange
-        {
-            get
-            {
-                if (MaxWeight.HasValue)
-                {
-                    return $"{MinWeight:0.##} – {MaxWeight.Value:0.##} kg";
-                }
-
-                return $"{MinWeight:0.##} kg and above";
-            }
-        }
-
-        public bool IsUsedByVehicles { get; set; }
-    }
+    /// <summary>Culture-neutral number so the browser can sort the Weight Range column numerically.</summary>
+    public string MinWeightSortKey => MinWeight.ToString(CultureInfo.InvariantCulture);
 }
