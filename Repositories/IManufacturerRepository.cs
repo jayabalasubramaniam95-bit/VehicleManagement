@@ -1,43 +1,28 @@
-using VehicleManagement.Models;
+using VehicleManagement.Models;   
 
 namespace VehicleManagement.Repositories;
 
+public record ManufacturerSummary(int Id, string Name, bool IsDefault, int VehicleCount);
+
 public interface IManufacturerRepository
 {
-    #region Queries
+    // Index (list, search, sort, paging)
+    int CountManufacturer(string? search);
+    List<ManufacturerSummary> GetPage(
+        string? search, string sortBy, bool descending, int skip, int take);
 
-    IQueryable<Manufacturer> GetQueryable();
+    // Details
+    Manufacturer? GetWithVehicles(int id);
 
-    List<Manufacturer> GetAll();
-
+    // Edit / Delete 
     Manufacturer? GetById(int id);
 
-    Manufacturer? GetByIdWithVehicles(int id);
-
-    #endregion
-
-    #region Existence Checks
-
-
-    bool Exists(int id);
-
-    bool NameExists(
-        string name,
-        int? excludeId = null);
-
+    // Validation and business rules
+    bool NameExists(string name, int? excludeId = null);
     bool HasVehicles(int id);
 
-    #endregion
-
-    #region Commands
-
+    // Create / Delete / persist
     void Add(Manufacturer manufacturer);
-
     void Update(Manufacturer manufacturer);
-
-    void Delete(Manufacturer manufacturer);
-
-    void SaveChanges();
-
-    #endregion
+    int SaveChanges();
 }

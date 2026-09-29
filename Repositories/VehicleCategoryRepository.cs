@@ -62,9 +62,6 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
     public void Update(VehicleCategory category) =>
         _context.VehicleCategories.Update(category);
 
-    public void Delete(VehicleCategory category) =>
-        _context.VehicleCategories.Remove(category);
-
     public void SaveChanges() =>
         _context.SaveChanges();
 

@@ -51,7 +51,6 @@ public class VehicleService : IVehicleService
         var totalItems = _vehicleRepository.Count(search);
         var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-        // Keep the page inside 1..totalPages (page 1 when there are no results).
         page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
 
         var items = _vehicleRepository
@@ -86,7 +85,6 @@ public class VehicleService : IVehicleService
     public VehicleDetailsViewModel? GetDetails(int id)
     {
         var vehicle = _vehicleRepository.GetByIdWithDetails(id);
-
         return vehicle is null ? null : MapToDetailsViewModel(vehicle);
     }
 
@@ -97,9 +95,7 @@ public class VehicleService : IVehicleService
     public VehicleFormViewModel GetCreateViewModel()
     {
         var model = new VehicleFormViewModel();
-
         PopulateDropdowns(model);
-
         return model;
     }
 
@@ -122,11 +118,12 @@ public class VehicleService : IVehicleService
             ManufacturerId = model.ManufacturerId,
             YearOfManufacture = model.YearOfManufacture,
             Weight = model.Weight,
-            CategoryId = categoryId
+            CategoryId = categoryId,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false,
+            UpdatedAt = DateTime.UtcNow
         });
-
         _vehicleRepository.SaveChanges();
-
         return (true, null);
     }
 
@@ -138,12 +135,7 @@ public class VehicleService : IVehicleService
     public VehicleFormViewModel? GetEditViewModel(int id)
     {
         var vehicle = _vehicleRepository.GetById(id);
-
-        if (vehicle is null)
-        {
-            return null;
-        }
-
+        if (vehicle is null){ return null; }
         var model = new VehicleFormViewModel
         {
             Id = vehicle.Id,
@@ -153,9 +145,7 @@ public class VehicleService : IVehicleService
             Weight = vehicle.Weight,
             CategoryId = vehicle.CategoryId
         };
-
         PopulateDropdowns(model);
-
         return model;
     }
 
@@ -184,7 +174,7 @@ public class VehicleService : IVehicleService
         vehicle.YearOfManufacture = model.YearOfManufacture;
         vehicle.Weight = model.Weight;
         vehicle.CategoryId = categoryId;
-
+        vehicle.UpdatedAt = DateTime.UtcNow;
         _vehicleRepository.Update(vehicle);
         _vehicleRepository.SaveChanges();
 
@@ -201,15 +191,11 @@ public class VehicleService : IVehicleService
     public (bool Success, string? ErrorMessage) Delete(int id)
     {
         var vehicle = _vehicleRepository.GetById(id);
-
-        if (vehicle is null)
-        {
-            return (false, VehicleNotFoundError);
-        }
-
-        _vehicleRepository.Delete(vehicle);
+        if (vehicle is null) {  return (false, VehicleNotFoundError);}
+        vehicle.IsDeleted = true;
+        vehicle.UpdatedAt = DateTime.UtcNow;
+        _vehicleRepository.Update(vehicle);
         _vehicleRepository.SaveChanges();
-
         return (true, null);
     }
 
@@ -221,19 +207,17 @@ public class VehicleService : IVehicleService
     private bool TryResolveCategoryId(decimal weight, out int categoryId)
     {
         var category = _vehicleCategoryRepository.GetByWeight(weight);
-
         categoryId = category?.Id ?? 0;
-
         return category is not null;
     }
 
     private void PopulateDropdowns(VehicleFormViewModel model)
     {
         // The repository already returns manufacturers ordered by name.
-        model.Manufacturers = _manufacturerRepository
-            .GetAll()
-            .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
-            .ToList();
+        // model.Manufacturers = _manufacturerRepository
+        //     .GetAll()
+        //     .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
+        //     .ToList();
 
         model.Categories = _vehicleCategoryRepository
             .GetAll()

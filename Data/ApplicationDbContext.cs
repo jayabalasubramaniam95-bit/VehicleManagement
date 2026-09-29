@@ -17,6 +17,20 @@ namespace VehicleManagement.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Manufacturer>(e =>
+            {
+                e.Property(m => m.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                e.HasIndex(m => m.Name)
+                    .IsUnique();
+
+                e.HasMany(m => m.Vehicles)
+                    .WithOne(v => v.Manufacturer)
+                    .HasForeignKey(v => v.ManufacturerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             modelBuilder.Entity<Vehicle>()
                 .HasOne(v => v.Manufacturer)
@@ -40,21 +54,23 @@ namespace VehicleManagement.Data
 
         private static void SeedManufacturers(ModelBuilder modelBuilder)
         {
+            var seedDate = new DateTime(2026, 9, 29, 15, 45, 32);
             modelBuilder.Entity<Manufacturer>().HasData(
-                new Manufacturer { Id = 1, Name = "Mazda" },
-                new Manufacturer { Id = 2, Name = "Mercedes" },
-                new Manufacturer { Id = 3, Name = "Honda" },
-                new Manufacturer { Id = 4, Name = "Ferrari" },
-                new Manufacturer { Id = 5, Name = "Toyota" }
+                new Manufacturer { Id = 1, Name = "Mazda",IsDefault = true , CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new Manufacturer { Id = 2, Name = "Mercedes", IsDefault = true, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new Manufacturer { Id = 3, Name = "Honda", IsDefault = true, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new Manufacturer { Id = 4, Name = "Ferrari", IsDefault = true, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new Manufacturer { Id = 5, Name = "Toyota", IsDefault = true, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false }
             );
         }
 
         private static void SeedVehicleCategories(ModelBuilder modelBuilder)
         {
+           var seedDate = new DateTime(2026, 9, 29, 15, 45, 32);
             modelBuilder.Entity<VehicleCategory>().HasData(
-                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, Size = "light" },
-                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, Size = "medium" },
-                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, Size = "heavy" }
+                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, Size = "light", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, Size = "medium", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, Size = "heavy", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false }
             );
         }
     }

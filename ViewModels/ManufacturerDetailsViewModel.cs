@@ -1,19 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+namespace VehicleManagement.ViewModels;
 
-namespace VehicleManagement.ViewModels
+public class ManufacturerDetailsViewModel
 {
-    public class ManufacturerDetailsViewModel
-    {
-        public int Id { get; set; }
-
-    public string Name { get; set; } = string.Empty;
-
-    public int VehicleCount { get; set; }
-
-    public IEnumerable<VehicleListItemViewModel> Vehicles { get; set; }
-        = new List<VehicleListItemViewModel>();
-    }
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public bool IsDefault { get; init; }
+    public int VehicleCount { get; init; }
+    public List<VehicleListItemViewModel> Vehicles { get; init; } = new();
 }

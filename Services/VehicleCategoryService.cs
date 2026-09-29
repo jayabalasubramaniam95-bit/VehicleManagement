@@ -29,20 +29,14 @@ public class VehicleCategoryService : IVehicleCategoryService
     public Vehicle? GetById(int id)
     {
         var vehicle = _vehicleRepository.GetById(id);
-
-        if (vehicle is null)
-        {
-            return null;
-        }
-
+        if (vehicle is null){ return null;}
         vehicle.Category = _categoryRepository.GetByWeight(vehicle.Weight);
-
         return vehicle;
     }
 
     public VehicleCategoryListViewModel GetList()
     {
-        var categories = _categoryRepository
+        return new VehicleCategoryListViewModel { Categories = _categoryRepository
             .GetAll()
             .Select(category => new VehicleCategoryItemViewModel
             {
@@ -52,9 +46,7 @@ public class VehicleCategoryService : IVehicleCategoryService
                 MaxWeight = category.MaxWeight,
                 IsUsedByVehicles = _categoryRepository.HasVehicles(category.Id)
             })
-            .ToList();
-
-        return new VehicleCategoryListViewModel { Categories = categories };
+            .ToList() };
     }
 
     #endregion
@@ -68,7 +60,7 @@ public class VehicleCategoryService : IVehicleCategoryService
             throw new InvalidOperationException(
                 "Minimum weight cannot be greater than maximum weight.");
         }
-
+         category.UpdatedAt = DateTime.UtcNow;
         _categoryRepository.Update(category);
 
         var categories = _categoryRepository
@@ -86,6 +78,7 @@ public class VehicleCategoryService : IVehicleCategoryService
             }
 
             vehicle.CategoryId = match.Id;
+            vehicle.UpdatedAt = DateTime.UtcNow;
             _vehicleRepository.Update(vehicle);
         }
 
@@ -99,15 +92,11 @@ public class VehicleCategoryService : IVehicleCategoryService
     public bool Delete(int id)
     {
         var category = _categoryRepository.GetById(id);
-
-        if (category is null || _categoryRepository.HasVehicles(id))
-        {
-            return false;
-        }
-
-        _categoryRepository.Delete(category);
+        if (category is null || _categoryRepository.HasVehicles(id)){  return false; }
+        category.IsDeleted = true;
+        category.UpdatedAt = DateTime.UtcNow;
+        _categoryRepository.Update(category);
         _categoryRepository.SaveChanges();
-
         return true;
     }
 

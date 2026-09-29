@@ -33,8 +33,6 @@ public interface IVehicleRepository
 
     void Update(Vehicle vehicle);
 
-    void Delete(Vehicle vehicle);
-
     void SaveChanges();
 
     #endregion

@@ -1,22 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using VehicleManagement.ViewModels;
 
-namespace VehicleManagement.Services
+namespace VehicleManagement.Services;
+
+public enum DeleteResult
 {
-    public interface IManufacturerService
-    {
-    ManufacturerListViewModel GetManufacturers( string? search, int page, int pageSize);
+    Deleted,
+    NotFound,
+    IsDefault,
+    HasVehicles
+}
 
-    ManufacturerDetailsViewModel GetDetailsById(int id);
+public interface IManufacturerService
+{
+    ManufacturerListViewModel GetPaged(
+        string? search, string sortBy, string sortDirection, int page, int pageSize);
 
-    ManufacturerEditViewModel GetEdit(int id);
-    bool Create(ManufacturerCreateViewModel model);
+    ManufacturerDetailsViewModel? GetDetails(int id);
+    ManufacturerFormViewModel? GetForEdit(int id);
 
-    bool Update(ManufacturerEditViewModel model);
+    /// <summary>Case-insensitive uniqueness check. Pass excludeId when editing.</summary>
+    bool NameExists(string name, int? excludeId = null);
 
-    bool Delete(int id);
-    }
+    void Create(ManufacturerFormViewModel model);
+    bool Update(ManufacturerFormViewModel model);
+    DeleteResult Delete(int id);
 }

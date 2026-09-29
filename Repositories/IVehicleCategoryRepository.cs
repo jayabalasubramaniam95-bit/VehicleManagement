@@ -32,8 +32,6 @@ namespace VehicleManagement.Repositories
 
         void Update(VehicleCategory category);
 
-        void Delete(VehicleCategory category);
-
         void SaveChanges();
 
         #endregion

@@ -2,13 +2,15 @@
 
 @{
     ViewData["Title"] = "Manufacturer Details";
+    var initial = string.IsNullOrWhiteSpace(Model.Name) ? "?" : Model.Name.Trim()[0].ToString().ToUpper();
 }
 
 <div class="page-container">
 
     <div class="page-header">
         <div>
-            <h1>Manufacturer Details</h1>
+            <h1>@ViewData["Title"]</h1>
+            <p class="page-subtitle">View manufacturer information and its registered vehicles</p>
         </div>
 
         <div class="action-buttons">
@@ -17,23 +19,38 @@
         </div>
     </div>
 
-    <!-- Manufacturer Information -->
+    @* Manufacturer summary *@
     <div class="details-card">
-        <div class="details-row">
-            <div class="details-label">Manufacturer</div>
-            <div class="details-value">@Model.Name</div>
+        <div class="details-hero">
+            <div class="details-avatar">@initial</div>
+            <div>
+                <h2 class="details-name">
+                    @Model.Name
+                    @if (Model.IsDefault)
+                    {
+                        <span class="badge badge-default">Default</span>
+                    }
+                </h2>
+                <p class="details-meta">@(Model.IsDefault ? "Default manufacturer" : "Custom manufacturer")</p>
+            </div>
         </div>
 
-        <div class="details-row">
-            <div class="details-label">Registered Vehicles</div>
-            <div class="details-value">@Model.VehicleCount</div>
+        <div class="details-stats">
+            <div class="stat-tile">
+                <span class="stat-label">Registered Vehicles</span>
+                <span class="stat-value">@Model.VehicleCount</span>
+            </div>
+            <div class="stat-tile">
+                <span class="stat-label">Type</span>
+                <span class="stat-value stat-text">@(Model.IsDefault ? "Default" : "Custom")</span>
+            </div>
         </div>
     </div>
 
-    <!-- Vehicles -->
+    @* Vehicles *@
     <div class="section-header">
         <div>
-            <h2>Vehicles</h2>
+            <h2>Vehicles <span class="count-pill">@Model.VehicleCount</span></h2>
             <p class="page-subtitle">Vehicles registered under this manufacturer</p>
         </div>
     </div>
@@ -64,12 +81,14 @@
                         @foreach (var vehicle in Model.Vehicles)
                         {
                             <tr>
-                                <td>@vehicle.OwnerName</td>
+                                <td><strong>@vehicle.OwnerName</strong></td>
                                 <td>@vehicle.YearOfManufacture</td>
-                                <td>@vehicle.Weight.ToString("0.00")</td>
-                                <td>@vehicle.CategoryName</td>
+                                <td>@vehicle.Weight.ToString("0.00") kg</td>
+                                <td><span class="badge-category">@vehicle.CategoryName</span></td>
                                 <td>
-                                    <a asp-controller="Vehicles" asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>
+                                    <div class="action-buttons">
+                                        <a asp-controller="Vehicles" asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>
+                                    </div>
                                 </td>
                             </tr>
                         }

@@ -14,21 +14,17 @@ public class VehicleRepository : IVehicleRepository
     {
         _context = context;
     }
-
     #endregion
 
     #region Queries
 
     public IEnumerable<Vehicle> GetAll() =>
-        _context.Vehicles
-            .Include(v => v.Manufacturer)
-            .OrderBy(v => v.OwnerName)
-            .ToList();
+     _context.Vehicles.Where(v => !v.IsDeleted).Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted).OrderBy(v => v.OwnerName).ToList();
 
     public Vehicle? GetById(int id) =>
-        _context.Vehicles
-            .Include(v => v.Manufacturer)
-            .FirstOrDefault(v => v.Id == id);
+        _context.Vehicles.Where(v => !v.IsDeleted)
+            .Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted)
+            .FirstOrDefault(v => v.Id == id );
 
     public Vehicle? GetByIdWithDetails(int id) =>
         GetById(id);
@@ -38,7 +34,7 @@ public class VehicleRepository : IVehicleRepository
         pageNumber = Math.Max(pageNumber, 1);
         pageSize = Math.Max(pageSize, 1);
 
-        return ApplySearch(_context.Vehicles.Include(v => v.Manufacturer), search)
+        return ApplySearch(_context.Vehicles.Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted), search)
             .OrderBy(v => v.OwnerName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -53,13 +49,13 @@ public class VehicleRepository : IVehicleRepository
     #region Existence Checks
 
     public bool Exists(int id) =>
-        _context.Vehicles.Any(v => v.Id == id);
+        _context.Vehicles.Any(v =>  !v.IsDeleted && v.Id == id);
 
     public bool HasManufacturer(int manufacturerId) =>
-        _context.Manufacturers.Any(m => m.Id == manufacturerId);
+        _context.Manufacturers.Any(m => !m.IsDeleted && m.Id == manufacturerId );
 
     public bool HasCategory(int categoryId) =>
-        _context.VehicleCategories.Any(c => c.Id == categoryId);
+        _context.VehicleCategories.Any(c => !c.IsDeleted && c.Id == categoryId);
 
     #endregion
 
@@ -71,22 +67,6 @@ public class VehicleRepository : IVehicleRepository
     public void Update(Vehicle vehicle) =>
         _context.Vehicles.Update(vehicle);
 
-    public void Delete(Vehicle vehicle) =>
-        _context.Vehicles.Remove(vehicle);
-
-    public void Delete(int id)
-    {
-        var vehicle = _context.Vehicles.FirstOrDefault(v => v.Id == id);
-
-        if (vehicle is null)
-        {
-            return;
-        }
-
-        _context.Vehicles.Remove(vehicle);
-        _context.SaveChanges();
-    }
-
     public void SaveChanges() =>
         _context.SaveChanges();
 
@@ -96,14 +76,9 @@ public class VehicleRepository : IVehicleRepository
 
     private static IQueryable<Vehicle> ApplySearch(IQueryable<Vehicle> query, string? search)
     {
-        if (string.IsNullOrWhiteSpace(search))
-        {
-            return query;
-        }
-
+        if (string.IsNullOrWhiteSpace(search)) { return query; }
         search = search.Trim();
-
-        return query.Where(v =>
+        return query.Where(v => !v.IsDeleted &&
             v.OwnerName.Contains(search) ||
             (v.Manufacturer != null && v.Manufacturer.Name.Contains(search)));
     }
