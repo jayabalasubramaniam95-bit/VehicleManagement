@@ -1,4 +1,5 @@
 ﻿@model VehicleManagement.ViewModels.ManufacturerDetailsViewModel
+@using VehicleManagement.ViewModels
 
 @{
     ViewData["Title"] = "Manufacturer Details";
@@ -84,7 +85,9 @@
                                 <td><strong>@vehicle.OwnerName</strong></td>
                                 <td>@vehicle.YearOfManufacture</td>
                                 <td>@vehicle.Weight.ToString("0.00") kg</td>
-                                <td><span class="badge-category">@vehicle.CategoryName</span></td>
+                                <td>
+                                    <i class="bi @VehicleCategoryIcons.GetCssClass(vehicle.CategoryIcon) me-2" aria-hidden="true"></i>
+                                    <span class="badge-category">@vehicle.CategoryName</span></td>
                                 <td>
                                     <div class="action-buttons">
                                         <a asp-controller="Vehicles" asp-action="Details" asp-route-id="@vehicle.Id" class="action-view">View</a>

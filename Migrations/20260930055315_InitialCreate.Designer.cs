@@ -12,7 +12,7 @@ using VehicleManagement.Data;
 namespace VehicleManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260929062629_InitialCreate")]
+    [Migration("20260930055315_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -179,11 +179,6 @@ namespace VehicleManagement.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Size")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -200,7 +195,6 @@ namespace VehicleManagement.Migrations
                             MaxWeight = 500m,
                             MinWeight = 0m,
                             Name = "Light",
-                            Size = "light",
                             UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
@@ -211,7 +205,6 @@ namespace VehicleManagement.Migrations
                             MaxWeight = 2500m,
                             MinWeight = 500m,
                             Name = "Medium",
-                            Size = "medium",
                             UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         },
                         new
@@ -221,7 +214,6 @@ namespace VehicleManagement.Migrations
                             IsDeleted = false,
                             MinWeight = 2500m,
                             Name = "Heavy",
-                            Size = "heavy",
                             UpdatedAt = new DateTime(2026, 9, 29, 15, 45, 32, 0, DateTimeKind.Unspecified)
                         });
                 });

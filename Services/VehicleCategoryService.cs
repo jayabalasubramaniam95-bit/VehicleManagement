@@ -44,17 +44,16 @@ public class VehicleCategoryService : IVehicleCategoryService
     public VehicleCategoryFormViewModel? GetForEdit(int id)
     {
         var category = _categoryRepository.GetById(id);
+        if (category is null) return null;
 
-        return category is null
-            ? null
-            : new VehicleCategoryFormViewModel
-            {
-                Id = category.Id,
-                Name = category.Name,
-                MinWeight = category.MinWeight,
-                MaxWeight = category.MaxWeight,
-                Icon = category.Icon
-            };
+        return new VehicleCategoryFormViewModel
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Icon = category.Icon,
+            MinWeight = category.MinWeight,
+            MaxWeight = category.MaxWeight
+        };
     }
 
     public bool NameExists(string name, int? excludeId = null) =>
@@ -77,7 +76,7 @@ public class VehicleCategoryService : IVehicleCategoryService
             UpdatedAt = DateTime.UtcNow
         };
 
-        // The ranges already cover 0 -> infinity, so a new category has to take over part of one
+        // Existing ranges already cover 0 -> infinity, so a new category must take over part of one.
         var error = TakeRangeFromExisting(categories, candidate);
         if (error is not null) return CategorySaveResult.InvalidRange(error);
 
@@ -89,7 +88,7 @@ public class VehicleCategoryService : IVehicleCategoryService
         _categoryRepository.InTransaction(() =>
         {
             _categoryRepository.Add(candidate);
-            _categoryRepository.SaveChanges();      // candidate.Id is known after this
+            _categoryRepository.SaveChanges(); // candidate.Id is known after this
 
             RecategoriseVehicles(categories);
             _categoryRepository.SaveChanges();
@@ -118,26 +117,31 @@ public class VehicleCategoryService : IVehicleCategoryService
         category.MaxWeight = model.MaxWeight;
         category.UpdatedAt = now;
 
-        var previous = categories.FirstOrDefault(c => c.Id != category.Id && c.MaxWeight == oldMin);
-        if (previous is not null && model.MinWeight != oldMin)
+        // Keep neighbours contiguous when a boundary moves.
+        if (model.MinWeight != oldMin)
         {
-            previous.MaxWeight = model.MinWeight;
-            previous.UpdatedAt = now;
+            var previous = categories.FirstOrDefault(c => c.Id != category.Id && c.MaxWeight == oldMin);
+            if (previous is not null)
+            {
+                previous.MaxWeight = model.MinWeight;
+                previous.UpdatedAt = now;
+            }
         }
 
-        var next = oldMax is null
-            ? null
-            : categories.FirstOrDefault(c => c.Id != category.Id && c.MinWeight == oldMax);
-        if (next is not null && model.MaxWeight is { } newMax && newMax != oldMax)
+        if (oldMax is not null && model.MaxWeight is { } newMax && newMax != oldMax)
         {
-            next.MinWeight = newMax;
-            next.UpdatedAt = now;
+            var next = categories.FirstOrDefault(c => c.Id != category.Id && c.MinWeight == oldMax);
+            if (next is not null)
+            {
+                next.MinWeight = newMax;
+                next.UpdatedAt = now;
+            }
         }
 
         var error = ValidateRanges(categories);
         if (error is not null) return CategorySaveResult.InvalidRange(error);
 
-        // Entities are tracked, so this is one SaveChanges (one transaction) for categories and vehicles
+        // Entities are tracked, so one SaveChanges (one transaction) covers categories and vehicles.
         RecategoriseVehicles(categories);
         _categoryRepository.SaveChanges();
 
@@ -157,12 +161,14 @@ public class VehicleCategoryService : IVehicleCategoryService
         if (categories.Count == 1) return CategoryDeleteResult.LastCategory;
         if (_categoryRepository.HasVehicles(id)) return CategoryDeleteResult.HasVehicles;
 
-        // Hand the range to a neighbour so no gap is left behind
+        var now = DateTime.UtcNow;
+
+        // Hand the range to a neighbour so no gap is left behind.
         var previous = categories.FirstOrDefault(c => c.MaxWeight == category.MinWeight);
         if (previous is not null)
         {
             previous.MaxWeight = category.MaxWeight;
-            previous.UpdatedAt = DateTime.UtcNow;
+            previous.UpdatedAt = now;
         }
         else
         {
@@ -170,14 +176,15 @@ public class VehicleCategoryService : IVehicleCategoryService
             if (next is not null)
             {
                 next.MinWeight = category.MinWeight;
-                next.UpdatedAt = DateTime.UtcNow;
+                next.UpdatedAt = now;
             }
         }
 
         category.IsDeleted = true;
-        category.UpdatedAt = DateTime.UtcNow;
+        category.UpdatedAt = now;
         _categoryRepository.Update(category);
         _categoryRepository.SaveChanges();
+
         return CategoryDeleteResult.Deleted;
     }
 
@@ -187,17 +194,15 @@ public class VehicleCategoryService : IVehicleCategoryService
 
     private void RecategoriseVehicles(IReadOnlyCollection<VehicleCategory> categories)
     {
+        var now = DateTime.UtcNow;
+
         foreach (var vehicle in _vehicleRepository.GetAll())
         {
             var match = FindCategory(categories, vehicle.Weight);
-
-            if (match is null || vehicle.CategoryId == match.Id)
-            {
-                continue;
-            }
+            if (match is null || vehicle.CategoryId == match.Id) continue;
 
             vehicle.CategoryId = match.Id;
-            vehicle.UpdatedAt = DateTime.UtcNow;
+            vehicle.UpdatedAt = now;
             _vehicleRepository.Update(vehicle);
         }
     }
@@ -212,70 +217,110 @@ public class VehicleCategoryService : IVehicleCategoryService
         : $"{c.MinWeight:0.##} kg and above";
 
     /// <summary>
-    /// Shrinks the existing category that contains the new range. Returns an error message,
-    /// or null when the new range could be carved out cleanly.
+    /// Makes room for <paramref name="candidate"/> by shrinking an existing category.
+    /// Returns an error message, or null on success.
     /// </summary>
-    private static string? TakeRangeFromExisting(IEnumerable<VehicleCategory> categories, VehicleCategory candidate)
+    private static string? TakeRangeFromExisting(
+        IEnumerable<VehicleCategory> categories,
+        VehicleCategory candidate)
     {
-        
-        var host = categories.FirstOrDefault(c =>
-            candidate.MinWeight >= c.MinWeight && UpperBound(candidate) <= UpperBound(c));
+        if (candidate.MaxWeight is { } candidateMax && candidateMax <= candidate.MinWeight)
+        {
+            return $"'{candidate.Name}' must have a maximum weight greater than its minimum weight.";
+        }
+
+        var sorted = categories.OrderBy(c => c.MinWeight).ToList();
+
+        // Case 1: continues directly after the highest category
+        //  (e.g. 2500–3000 -> 3000–5000).
+        var highest = sorted.LastOrDefault();
+        if (highest?.MaxWeight is { } highestMax && candidate.MinWeight == highestMax)
+        {
+            return null;
+        }
+
+        // Case 2: sits inside an existing category
+        //  (e.g. 2500–∞ -> 2500–3000).
+        var host = sorted.FirstOrDefault(c =>
+            candidate.MinWeight >= c.MinWeight &&
+            UpperBound(candidate) <= UpperBound(c));
 
         if (host is null)
-            return "This range overlaps existing categories or falls outside them. " +
-                   "A new category must take over part of one existing range.";
+        {
+            return "The new range must either fit inside an existing category " +
+                   "or start exactly where the current highest category ends.";
+        }
 
         var sameMin = candidate.MinWeight == host.MinWeight;
         var sameMax = UpperBound(candidate) == UpperBound(host);
 
         if (sameMin && sameMax)
+        {
             return $"'{host.Name}' already covers exactly this range ({Describe(host)}).";
+        }
 
         if (sameMin)
-            host.MinWeight = candidate.MaxWeight!.Value;   // new category takes the bottom slice
+        {
+            host.MinWeight = candidate.MaxWeight!.Value; // candidate takes the bottom part
+        }
         else if (sameMax)
-            host.MaxWeight = candidate.MinWeight;          // new category takes the top slice
+        {
+            host.MaxWeight = candidate.MinWeight; // candidate takes the top part
+        }
         else
+        {
             return $"'{host.Name}' ({Describe(host)}) would be split in two. " +
                    "Start or end the new range at the same boundary as that category.";
+        }
 
         host.UpdatedAt = DateTime.UtcNow;
         return null;
     }
 
-    /// <summary>Checks the complete set of ranges. Returns the first problem found, or null if valid.</summary>
+    /// <summary>
+    /// Ensures the ranges start at 0, are valid, and connect with no gaps or overlaps.
+    /// Returns an error message, or null when valid.
+    /// </summary>
     private static string? ValidateRanges(IEnumerable<VehicleCategory> categories)
     {
         var sorted = categories.OrderBy(c => c.MinWeight).ToList();
 
+        if (sorted.Count == 0)
+            return "At least one vehicle category is required.";
+
         if (sorted[0].MinWeight != 0)
-            return $"The lowest category must start at 0 kg ('{sorted[0].Name}' starts at {sorted[0].MinWeight:0.##} kg).";
+        {
+            return "The lowest category must start at 0 kg " +
+                   $"('{sorted[0].Name}' starts at {sorted[0].MinWeight:0.##} kg).";
+        }
 
         for (var i = 0; i < sorted.Count; i++)
         {
             var current = sorted[i];
             var isLast = i == sorted.Count - 1;
 
-            if (current.MaxWeight is not { } max)
+            if (current.MaxWeight is { } max && max <= current.MinWeight)
             {
-                if (!isLast)
-                    return $"Only the highest category can have no upper limit ('{current.Name}').";
-                continue;
+                return $"'{current.Name}' would have an empty or invalid range " +
+                       $"({Describe(current)}). Adjust the weights.";
             }
 
-            if (isLast)
-                return $"The highest category ('{current.Name}') must have no upper limit. Leave Maximum Weight empty.";
-
-            if (max <= current.MinWeight)
-                return $"'{current.Name}' would have an empty range ({Describe(current)}). Adjust the weights.";
+            // The last category may be bounded (2500–3000) or open-ended (2500–∞).
+            if (isLast) break;
 
             var next = sorted[i + 1];
 
-            if (max < next.MinWeight)
-                return $"Gap between {max:0.##}–{next.MinWeight:0.##} kg is not allowed.";
+            if (current.MaxWeight is not { } currentMax)
+            {
+                return $"'{current.Name}' has no upper limit, but another " +
+                       $"category ('{next.Name}') exists after it.";
+            }
 
-            if (max > next.MinWeight)
-                return $"Overlap between {next.MinWeight:0.##}–{max:0.##} kg is not allowed.";
+            if (currentMax < next.MinWeight)
+                return $"Gap between {currentMax:0.##}–{next.MinWeight:0.##} kg is not allowed.";
+
+            if (currentMax > next.MinWeight)
+                return $"Overlap between {next.MinWeight:0.##}–{currentMax:0.##} kg is not allowed.";
         }
 
         return null;
