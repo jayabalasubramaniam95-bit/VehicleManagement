@@ -14,48 +14,62 @@ public class VehicleRepository : IVehicleRepository
     {
         _context = context;
     }
+
+    // Every read starts here, so deleted vehicles (or vehicles of deleted manufacturers) never leak in
+    private IQueryable<Vehicle> Active =>
+        _context.Vehicles.Where(v => !v.IsDeleted && !v.Manufacturer.IsDeleted);
+
     #endregion
 
     #region Queries
 
-    public IEnumerable<Vehicle> GetAll() =>
-     _context.Vehicles.Where(v => !v.IsDeleted).Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted).OrderBy(v => v.OwnerName).ToList();
+    public List<Vehicle> GetAll() =>
+        Active
+            .OrderBy(v => v.OwnerName)
+            .ToList();
 
     public Vehicle? GetById(int id) =>
-        _context.Vehicles.Where(v => !v.IsDeleted)
-            .Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted)
-            .FirstOrDefault(v => v.Id == id );
+        Active.FirstOrDefault(v => v.Id == id);
 
     public Vehicle? GetByIdWithDetails(int id) =>
-        GetById(id);
+        Active
+            .AsNoTracking()
+            .Include(v => v.Manufacturer)
+            .Include(v => v.Category)
+            .FirstOrDefault(v => v.Id == id);
 
-    public List<Vehicle> GetPaged(string? search, int pageNumber, int pageSize)
+    public List<VehicleSummary> GetPaged(string? search, int pageNumber, int pageSize)
     {
         pageNumber = Math.Max(pageNumber, 1);
         pageSize = Math.Max(pageSize, 1);
 
-        return ApplySearch(_context.Vehicles.Include(v => v.Manufacturer).Where(v => !v.Manufacturer.IsDeleted), search)
+        return ApplySearch(Active, search)
+            .AsNoTracking()
             .OrderBy(v => v.OwnerName)
+            .ThenBy(v => v.Id)                      // stable order so paging never repeats or skips rows
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .Select(v => new VehicleSummary(
+                v.Id,
+                v.OwnerName,
+                v.Manufacturer.Name,
+                v.YearOfManufacture,
+                v.Weight,
+                v.Category != null ? v.Category.Name : null,
+                v.Category != null ? v.Category.Icon : null))
             .ToList();
     }
 
+    // Uses the same base query as GetPaged, so the count always matches the rows
     public int Count(string? search) =>
-        ApplySearch(_context.Vehicles, search).Count();
+        ApplySearch(Active, search).Count();
 
     #endregion
 
     #region Existence Checks
 
-    public bool Exists(int id) =>
-        _context.Vehicles.Any(v =>  !v.IsDeleted && v.Id == id);
-
     public bool HasManufacturer(int manufacturerId) =>
-        _context.Manufacturers.Any(m => !m.IsDeleted && m.Id == manufacturerId );
-
-    public bool HasCategory(int categoryId) =>
-        _context.VehicleCategories.Any(c => !c.IsDeleted && c.Id == categoryId);
+        _context.Manufacturers.Any(m => !m.IsDeleted && m.Id == manufacturerId);
 
     #endregion
 
@@ -76,11 +90,14 @@ public class VehicleRepository : IVehicleRepository
 
     private static IQueryable<Vehicle> ApplySearch(IQueryable<Vehicle> query, string? search)
     {
-        if (string.IsNullOrWhiteSpace(search)) { return query; }
-        search = search.Trim();
-        return query.Where(v => !v.IsDeleted &&
-            v.OwnerName.Contains(search) ||
-            (v.Manufacturer != null && v.Manufacturer.Name.Contains(search)));
+        if (string.IsNullOrWhiteSpace(search)) return query;
+
+        var term = search.Trim();
+
+        return query.Where(v =>
+            v.OwnerName.Contains(term) ||
+            v.Manufacturer.Name.Contains(term) ||
+            (v.Category != null && v.Category.Name.Contains(term)));
     }
 
     #endregion

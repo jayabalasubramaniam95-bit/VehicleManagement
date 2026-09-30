@@ -11,9 +11,11 @@ public interface IManufacturerRepository
     List<ManufacturerSummary> GetPage(
         string? search, string sortBy, bool descending, int skip, int take);
 
+    List<Manufacturer> GetAll();
+
     // Details
     Manufacturer? GetWithVehicles(int id);
-
+    
     // Edit / Delete 
     Manufacturer? GetById(int id);
 

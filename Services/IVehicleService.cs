@@ -16,27 +16,24 @@ public interface IVehicleService
 
     #endregion
 
-    #region Create
+    #region Form (Create / Edit)
 
     VehicleFormViewModel GetCreateViewModel();
 
-    (bool Success, string? ErrorMessage) Create(VehicleFormViewModel model);
-
-    #endregion
-
-    #region Edit
-
     VehicleFormViewModel? GetEditViewModel(int id);
 
-    (bool Success, string? ErrorMessage) Update(VehicleFormViewModel model);
+    /// <summary>Refills the manufacturer dropdown after a failed post.</summary>
+    void PopulateDropdowns(VehicleFormViewModel model);
+
+    ServiceResult Create(VehicleFormViewModel model);
+
+    ServiceResult Update(VehicleFormViewModel model);
 
     #endregion
 
     #region Delete
 
-    VehicleDetailsViewModel? GetDeleteViewModel(int id);
-
-    (bool Success, string? ErrorMessage) Delete(int id);
+    ServiceResult Delete(int id);
 
     #endregion
 }

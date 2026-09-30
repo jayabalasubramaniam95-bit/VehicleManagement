@@ -34,36 +34,6 @@ public class VehiclesController : Controller
 
     #endregion
 
-    #region Create
-
-    [HttpGet]
-    public ActionResult Create() =>
-        View(_vehicleService.GetCreateViewModel());
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public ActionResult Create(VehicleFormViewModel model)
-    {
-        if (!ModelState.IsValid)
-        {
-            ReloadDropdowns(model);
-            return View(model);
-        }
-
-        var result = _vehicleService.Create(model);
-
-        if (!result.Success)
-        {
-            ModelState.AddModelError(string.Empty, result.ErrorMessage!);
-            ReloadDropdowns(model);
-            return View(model);
-        }
-
-        return RedirectWithSuccess("Vehicle was created successfully.");
-    }
-
-    #endregion
-
     #region Details
 
     [HttpGet]
@@ -72,76 +42,70 @@ public class VehiclesController : Controller
 
     #endregion
 
+    #region Create
+
+    [HttpGet]
+    public ActionResult Create() =>
+        View("Form", _vehicleService.GetCreateViewModel());
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public ActionResult Create(VehicleFormViewModel model) =>
+        Save(model, _vehicleService.Create, "Vehicle was created successfully.");
+
+    #endregion
+
     #region Edit
 
     [HttpGet]
     public ActionResult Edit(int id) =>
-        ViewOrNotFound(_vehicleService.GetEditViewModel(id));
+        ViewOrNotFound(_vehicleService.GetEditViewModel(id), "Form");
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public ActionResult Edit(int id, VehicleFormViewModel model)
-    {
-        if (id != model.Id)
-        {
-            return BadRequest();
-        }
-
-        if (!ModelState.IsValid)
-        {
-            ReloadDropdowns(model);
-            return View(model);
-        }
-
-        var result = _vehicleService.Update(model);
-
-        if (!result.Success)
-        {
-            ModelState.AddModelError(string.Empty, result.ErrorMessage!);
-            ReloadDropdowns(model);
-            return View(model);
-        }
-
-        return RedirectWithSuccess("Vehicle was updated successfully.");
-    }
+    [HttpPost, ValidateAntiForgeryToken]
+    public ActionResult Edit(VehicleFormViewModel model) =>
+        Save(model, _vehicleService.Update, "Vehicle was updated successfully.");
 
     #endregion
 
-    #region Delete
+    #region Delete (confirmed via popup on the Index page, POST only)
 
-    [HttpGet]
-    public ActionResult Delete(int id) =>
-        ViewOrNotFound(_vehicleService.GetDeleteViewModel(id));
-
-    [HttpPost]
-    [ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public ActionResult DeleteConfirmed(int id)
+    [HttpPost, ValidateAntiForgeryToken]
+    public ActionResult Delete(int id)
     {
         var result = _vehicleService.Delete(id);
 
-        if (!result.Success)
-        {
-            return RedirectWithError(result.ErrorMessage!);
-        }
-
-        return RedirectWithSuccess("Vehicle was deleted successfully.");
+        return result.Success
+            ? RedirectWithSuccess("Vehicle was deleted successfully.")
+            : RedirectWithError(result.ErrorMessage!);
     }
 
     #endregion
 
     #region Helpers
 
-    private void ReloadDropdowns(VehicleFormViewModel model)
+    /// <summary>Shared post-back flow for Create and Edit.</summary>
+    private ActionResult Save(
+        VehicleFormViewModel model,
+        Func<VehicleFormViewModel, ServiceResult> save,
+        string successMessage)
     {
-        var refreshed = _vehicleService.GetCreateViewModel();
+        if (ModelState.IsValid)
+        {
+            var result = save(model);
 
-        model.Manufacturers = refreshed.Manufacturers;
-        model.Categories = refreshed.Categories;
+            if (result.Success)
+            {
+                return RedirectWithSuccess(successMessage);
+            }
+
+            ModelState.AddModelError(string.Empty, result.ErrorMessage!);
+        }
+
+        _vehicleService.PopulateDropdowns(model);
+        return View("Form", model);
     }
 
-    private ActionResult ViewOrNotFound<TModel>(TModel? model) where TModel : class =>
-        model is null ? NotFound() : View(model);
+    private ActionResult ViewOrNotFound<TModel>(TModel? model, string? viewName = null) where TModel : class =>
+        model is null ? NotFound() : View(viewName, model);
 
     private ActionResult RedirectWithSuccess(string message)
     {

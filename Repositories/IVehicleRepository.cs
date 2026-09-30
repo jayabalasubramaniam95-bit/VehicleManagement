@@ -2,17 +2,31 @@ using VehicleManagement.Models;
 
 namespace VehicleManagement.Repositories;
 
+/// <summary>Read projection for the list page: one query, no entity graphs loaded.</summary>
+public record VehicleSummary(
+    int Id,
+    string OwnerName,
+    string ManufacturerName,
+    int YearOfManufacture,
+    decimal Weight,
+    string? CategoryName,
+    string? CategoryIcon);
+
+/// <summary>Contains only what VehicleService and VehicleCategoryService need.</summary>
 public interface IVehicleRepository
 {
     #region Queries
 
-    IEnumerable<Vehicle> GetAll();
+    /// <summary>All active vehicles, tracked (used by VehicleCategoryService to re-categorise).</summary>
+    List<Vehicle> GetAll();
 
+    /// <summary>Single vehicle, tracked (used by update and delete).</summary>
     Vehicle? GetById(int id);
 
+    /// <summary>Single vehicle with manufacturer and category, not tracked (details and edit form).</summary>
     Vehicle? GetByIdWithDetails(int id);
 
-    List<Vehicle> GetPaged(string? search, int pageNumber, int pageSize);
+    List<VehicleSummary> GetPaged(string? search, int pageNumber, int pageSize);
 
     int Count(string? search);
 
@@ -20,10 +34,7 @@ public interface IVehicleRepository
 
     #region Existence Checks
 
-    bool Exists(int id);
     bool HasManufacturer(int manufacturerId);
-
-    bool HasCategory(int categoryId);
 
     #endregion
 

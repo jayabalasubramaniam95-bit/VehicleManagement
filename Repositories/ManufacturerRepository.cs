@@ -48,6 +48,11 @@ public class ManufacturerRepository : IManufacturerRepository
         return _db.Manufacturers.Any(m => m.Name.ToLower() == normalized && m.Id != excludeId && !m.IsDeleted);
     }
 
+    public List<Manufacturer> GetAll()
+    {
+        return _db.Manufacturers.AsNoTracking().OrderBy(m => m.Name).ToList();
+    }
+
     public bool HasVehicles(int id) =>
         _db.Vehicles.Any(v => v.ManufacturerId == id && !v.IsDeleted);
 

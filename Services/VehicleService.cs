@@ -14,7 +14,8 @@ public class VehicleService : IVehicleService
 
     private const string VehicleNotFoundError = "Vehicle could not be found.";
     private const string ManufacturerNotFoundError = "The selected manufacturer does not exist.";
-    private const string CategoryNotFoundError = "The selected vehicle category does not exist.";
+    private const string CategoryNotFoundError =
+        "No vehicle category covers this weight. Check the category ranges.";
 
     #endregion
 
@@ -38,31 +39,26 @@ public class VehicleService : IVehicleService
 
     #region List (Search, Paging)
 
-    public VehicleListViewModel GetVehicles(
-        string? search,
-        int page,
-        int pageSize)
+    public VehicleListViewModel GetVehicles(string? search, int page, int pageSize)
     {
-        if (pageSize <= 0)
-        {
-            pageSize = DefaultPageSize;
-        }
+        if (pageSize <= 0) pageSize = DefaultPageSize;
+        search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
         var totalItems = _vehicleRepository.Count(search);
-        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
-
-        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+        page = Math.Clamp(page, 1, totalPages);
 
         var items = _vehicleRepository
             .GetPaged(search, page, pageSize)
-            .Select(vehicle => new VehicleListItemViewModel
+            .Select(v => new VehicleListItemViewModel
             {
-                Id = vehicle.Id,
-                OwnerName = vehicle.OwnerName,
-                ManufacturerName = vehicle.Manufacturer?.Name ?? Unknown,
-                YearOfManufacture = vehicle.YearOfManufacture,
-                Weight = vehicle.Weight,
-                CategoryName = vehicle.Category?.Name ?? Unknown
+                Id = v.Id,
+                OwnerName = v.OwnerName,
+                ManufacturerName = v.ManufacturerName,
+                YearOfManufacture = v.YearOfManufacture,
+                Weight = v.Weight,
+                CategoryName = v.CategoryName ?? Unknown,
+                CategoryIcon = v.CategoryIcon
             })
             .ToList();
 
@@ -72,8 +68,7 @@ public class VehicleService : IVehicleService
             Search = search,
             CurrentPage = page,
             PageSize = pageSize,
-            TotalItems = totalItems,
-            TotalPages = totalPages
+            TotalItems = totalItems
         };
     }
 
@@ -85,12 +80,23 @@ public class VehicleService : IVehicleService
     public VehicleDetailsViewModel? GetDetails(int id)
     {
         var vehicle = _vehicleRepository.GetByIdWithDetails(id);
-        return vehicle is null ? null : MapToDetailsViewModel(vehicle);
+
+        return vehicle is null
+            ? null
+            : new VehicleDetailsViewModel
+            {
+                Id = vehicle.Id,
+                OwnerName = vehicle.OwnerName,
+                ManufacturerName = vehicle.Manufacturer?.Name ?? Unknown,
+                YearOfManufacture = vehicle.YearOfManufacture,
+                WeightKg = vehicle.Weight,
+                CategoryName = vehicle.Category?.Name ?? Unknown
+            };
     }
 
     #endregion
 
-    #region Create
+    #region Form (Create / Edit)
 
     public VehicleFormViewModel GetCreateViewModel()
     {
@@ -99,143 +105,110 @@ public class VehicleService : IVehicleService
         return model;
     }
 
-    // The category is not chosen by the user. It is derived from the weight.
-    public (bool Success, string? ErrorMessage) Create(VehicleFormViewModel model)
-    {
-        if (!_vehicleRepository.HasManufacturer(model.ManufacturerId))
-        {
-            return (false, ManufacturerNotFoundError);
-        }
-
-        if (!TryResolveCategoryId(model.Weight, out var categoryId))
-        {
-            return (false, CategoryNotFoundError);
-        }
-
-        _vehicleRepository.Add(new Vehicle
-        {
-            OwnerName = model.OwnerName.Trim(),
-            ManufacturerId = model.ManufacturerId,
-            YearOfManufacture = model.YearOfManufacture,
-            Weight = model.Weight,
-            CategoryId = categoryId,
-            CreatedAt = DateTime.UtcNow,
-            IsDeleted = false,
-            UpdatedAt = DateTime.UtcNow
-        });
-        _vehicleRepository.SaveChanges();
-        return (true, null);
-    }
-
-    #endregion
-
-    #region Edit
-
     // Loads the data for the edit form (null when the id does not exist).
     public VehicleFormViewModel? GetEditViewModel(int id)
     {
-        var vehicle = _vehicleRepository.GetById(id);
-        if (vehicle is null){ return null; }
+        var vehicle = _vehicleRepository.GetByIdWithDetails(id);
+        if (vehicle is null) return null;
+
         var model = new VehicleFormViewModel
         {
             Id = vehicle.Id,
             OwnerName = vehicle.OwnerName,
             ManufacturerId = vehicle.ManufacturerId,
             YearOfManufacture = vehicle.YearOfManufacture,
-            Weight = vehicle.Weight,
-            CategoryId = vehicle.CategoryId
+            Weight = vehicle.Weight
         };
+
         PopulateDropdowns(model);
         return model;
     }
 
-    // The category is re-derived from the weight on every update.
-    public (bool Success, string? ErrorMessage) Update(VehicleFormViewModel model)
+    public void PopulateDropdowns(VehicleFormViewModel model) =>
+        model.Manufacturers = _manufacturerRepository
+            .GetAll()   // active manufacturers, already ordered by name
+            .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
+            .ToList();
+
+    // The category is not chosen by the user. It is derived from the weight.
+    public ServiceResult Create(VehicleFormViewModel model)
     {
-        var vehicle = _vehicleRepository.GetById(model.Id);
+        var check = ResolveReferences(model, out var categoryId);
+        if (!check.Success) return check;
 
-        if (vehicle is null)
-        {
-            return (false, VehicleNotFoundError);
-        }
+        var now = DateTime.UtcNow;
+        var vehicle = new Vehicle { CreatedAt = now, IsDeleted = false };
 
-        if (!_vehicleRepository.HasManufacturer(model.ManufacturerId))
-        {
-            return (false, ManufacturerNotFoundError);
-        }
+        Apply(vehicle, model, categoryId, now);
 
-        if (!TryResolveCategoryId(model.Weight, out var categoryId))
-        {
-            return (false, CategoryNotFoundError);
-        }
-
-        vehicle.OwnerName = model.OwnerName.Trim();
-        vehicle.ManufacturerId = model.ManufacturerId;
-        vehicle.YearOfManufacture = model.YearOfManufacture;
-        vehicle.Weight = model.Weight;
-        vehicle.CategoryId = categoryId;
-        vehicle.UpdatedAt = DateTime.UtcNow;
-        _vehicleRepository.Update(vehicle);
+        _vehicleRepository.Add(vehicle);
         _vehicleRepository.SaveChanges();
 
-        return (true, null);
+        return ServiceResult.Ok();
+    }
+
+    // The category is re-derived from the weight on every update.
+    public ServiceResult Update(VehicleFormViewModel model)
+    {
+        var vehicle = _vehicleRepository.GetById(model.Id);
+        if (vehicle is null) return ServiceResult.Fail(VehicleNotFoundError);
+
+        var check = ResolveReferences(model, out var categoryId);
+        if (!check.Success) return check;
+
+        Apply(vehicle, model, categoryId, DateTime.UtcNow);
+
+        _vehicleRepository.SaveChanges();   // the entity is tracked, so no explicit Update call is needed
+
+        return ServiceResult.Ok();
     }
 
     #endregion
 
     #region Delete
 
-    public VehicleDetailsViewModel? GetDeleteViewModel(int id) =>
-        GetDetails(id);
-
-    public (bool Success, string? ErrorMessage) Delete(int id)
+    public ServiceResult Delete(int id)
     {
         var vehicle = _vehicleRepository.GetById(id);
-        if (vehicle is null) {  return (false, VehicleNotFoundError);}
+        if (vehicle is null) return ServiceResult.Fail(VehicleNotFoundError);
+
         vehicle.IsDeleted = true;
         vehicle.UpdatedAt = DateTime.UtcNow;
-        _vehicleRepository.Update(vehicle);
         _vehicleRepository.SaveChanges();
-        return (true, null);
+
+        return ServiceResult.Ok();
     }
 
     #endregion
 
     #region Helpers
 
-    // Finds the category whose weight range contains the given weight.
-    private bool TryResolveCategoryId(decimal weight, out int categoryId)
+    // Checks the manufacturer exists and finds the category whose range contains the weight.
+    private ServiceResult ResolveReferences(VehicleFormViewModel model, out int categoryId)
     {
-        var category = _vehicleCategoryRepository.GetByWeight(weight);
-        categoryId = category?.Id ?? 0;
-        return category is not null;
+        categoryId = 0;
+
+        if (!_vehicleRepository.HasManufacturer(model.ManufacturerId!.Value))
+            return ServiceResult.Fail(ManufacturerNotFoundError);
+
+        var category = _vehicleCategoryRepository.GetByWeight(model.Weight!.Value);
+        if (category is null)
+            return ServiceResult.Fail(CategoryNotFoundError);
+
+        categoryId = category.Id;
+        return ServiceResult.Ok();
     }
 
-    private void PopulateDropdowns(VehicleFormViewModel model)
+    // Copies form values onto the entity (validation guarantees the nullable fields have values).
+    private static void Apply(Vehicle vehicle, VehicleFormViewModel model, int categoryId, DateTime now)
     {
-        // The repository already returns manufacturers ordered by name.
-        // model.Manufacturers = _manufacturerRepository
-        //     .GetAll()
-        //     .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
-        //     .ToList();
-
-        model.Categories = _vehicleCategoryRepository
-            .GetAll()
-            .OrderBy(c => c.Name)
-            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
-            .ToList();
+        vehicle.OwnerName = model.OwnerName;
+        vehicle.ManufacturerId = model.ManufacturerId!.Value;
+        vehicle.YearOfManufacture = model.YearOfManufacture!.Value;
+        vehicle.Weight = model.Weight!.Value;
+        vehicle.CategoryId = categoryId;
+        vehicle.UpdatedAt = now;
     }
-
-    private static VehicleDetailsViewModel MapToDetailsViewModel(Vehicle vehicle) =>
-        new()
-        {
-            Id = vehicle.Id,
-            OwnerName = vehicle.OwnerName,
-            ManufacturerName = vehicle.Manufacturer?.Name ?? Unknown,
-            YearOfManufacture = vehicle.YearOfManufacture,
-            WeightKg = vehicle.Weight,
-            CategoryName = vehicle.Category?.Name ?? Unknown
-        };
 
     #endregion
 }

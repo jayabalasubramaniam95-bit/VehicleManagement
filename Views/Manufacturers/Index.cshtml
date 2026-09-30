@@ -24,7 +24,6 @@
 
     @* Search is a plain GET form so it works with paging on the server *@
     <form asp-action="Index" method="get" id="searchForm" class="toolbar">
-
         <div class="search-group">
             <label asp-for="Search"></label>
             <input asp-for="Search" class="form-control" placeholder="Search manufacturer..." autocomplete="off" />
@@ -95,9 +94,9 @@
 
                                         @if (item.CanDelete)
                                         {
-                                            <button type="button" class="action-delete"
-                                                    data-delete-id="@item.Id"
-                                                    data-delete-name="@item.Name">Delete</button>
+                                            <a href="#" role="button" class="action-delete"
+                                           data-delete-id="@item.Id"
+                                           data-delete-name="@item.Name">Delete</a>
                                         }
                                         else
                                         {
@@ -115,7 +114,7 @@
         <div class="pagination-container">
             <span>Showing @Model.FirstItem - @Model.LastItem of @Model.TotalItems manufacturers</span>
 
-             @if (Model.TotalPages > 1)
+            @if (Model.TotalPages > 1)
             {
                 <div class="pagination">
                     @if (Model.HasPrevious)
@@ -141,15 +140,25 @@
 </div>
 
 @* Delete confirmation popup: one shared dialog, filled in when a Delete button is clicked *@
-<dialog id="deleteDialog" class="delete-dialog">
+<dialog id="deleteDialog" class="delete-dialog" aria-labelledby="deleteTitle">
     <form id="deleteForm" asp-action="Delete" method="post">
-        <h3>Delete manufacturer?</h3>
-        <p>You are about to delete <strong id="deleteName"></strong></p>
         <input type="hidden" name="id" id="deleteId" />
 
-        <div class="form-actions">
+        <div class="delete-dialog-body">
+            <div class="delete-dialog-icon" aria-hidden="true">
+                <i class="bi bi-trash3"></i>
+            </div>
+            <div>
+                <h3 id="deleteTitle" class="delete-dialog-title">Delete manufacturer?</h3>
+                <p class="delete-dialog-text">Are you sure to delete <strong id="deleteName"></strong>?</p>
+            </div>
+        </div>
+
+        <div class="delete-dialog-footer">
             <button type="button" class="btn btn-light" data-close-dialog>Cancel</button>
-            <button type="submit" class="btn btn-danger">Delete</button>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete
+            </button>
         </div>
     </form>
 </dialog>
@@ -172,6 +181,7 @@
                 el.focus();
                 el.setSelectionRange(el.value.length, el.value.length);
             }
+
             // ----- Sort: pure jQuery, toggles asc/desc on the rows already in the table -----
             const $body = $('#manufacturerTableBody');
             const $buttons = $('.sort-button');
@@ -204,7 +214,8 @@
             // ----- Delete popup -----
             const dialog = document.getElementById('deleteDialog');
 
-            $('[data-delete-id]').on('click', function () {
+            $('[data-delete-id]').on('click', function (e) {
+                e.preventDefault();  
                 $('#deleteId').val($(this).data('delete-id'));
                 $('#deleteName').text($(this).data('delete-name'));
                 dialog.showModal();

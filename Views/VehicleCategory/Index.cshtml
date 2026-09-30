@@ -146,21 +146,29 @@
 <!-- Delete confirmation popup: one shared modal, filled in when a Delete button is clicked -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form id="deleteForm" asp-action="Delete" method="post" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Delete category?</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <form id="deleteForm" asp-action="Delete" method="post" class="modal-content delete-modal">
+            <input type="hidden" name="id" id="deleteId" />
+
+            <div class="delete-dialog-body">
+                <div class="delete-dialog-icon" aria-hidden="true">
+                    <i class="bi bi-trash3"></i>
+                </div>
+                <div>
+                    <h3 id="deleteModalLabel" class="delete-dialog-title">Delete category?</h3>
+                    <p class="delete-dialog-text">
+                        Are you sure to delete the category <strong id="deleteName"></strong>?
+                    </p>
+                    <p class="delete-dialog-text delete-dialog-hint">
+                        The neighbouring category will take over its weight range so there are no gaps.
+                    </p>
+                </div>
             </div>
 
-            <div class="modal-body">
-                <input type="hidden" name="id" id="deleteId" />
-                <p class="mb-2">You are about to delete <strong id="deleteName"></strong>. This action cannot be undone.</p>
-                <p class="text-muted small mb-0">The neighbouring category will take over its weight range so there are no gaps.</p>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-danger">Delete</button>
+            <div class="delete-dialog-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-trash3 me-1" aria-hidden="true"></i>Delete
+                </button>
             </div>
         </form>
     </div>

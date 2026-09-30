@@ -73,7 +73,13 @@ public class ManufacturerService : IManufacturerService
                 Vehicles = m.Vehicles
                     .Select(v => new VehicleListItemViewModel
                     {
-                        Id = v.Id
+                        Id = v.Id,
+                        OwnerName = v.OwnerName,
+                        ManufacturerName = v.Manufacturer.Name,
+                        YearOfManufacture = v.YearOfManufacture,
+                        CategoryName = (v.Category != null ? v.Category.Name : string.Empty),
+                        CategoryIcon = (v.Category != null ? v.Category.Icon : string.Empty),
+                        Weight = v.Weight
                     })
                     .ToList()
             })

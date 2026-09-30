@@ -1,34 +1,29 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 
-namespace VehicleManagement.ViewModels
+namespace VehicleManagement.ViewModels;
+
+public class VehicleListViewModel
 {
-    public class VehicleListViewModel
-    {
-   public IEnumerable<VehicleListItemViewModel> Vehicles { get; set; }
-        = new List<VehicleListItemViewModel>();
+    public List<VehicleListItemViewModel> Vehicles { get; init; } = new();
 
-    public string? Search { get; set; }
+    // Query state (echoed back so pagination links keep the search)
+    public string? Search { get; init; }
+    public int CurrentPage { get; init; } = 1;
+    public int PageSize { get; init; } = 10;
+    public int TotalItems { get; init; }
 
-    public string SortBy { get; set; } = "OwnerName";
+    // Derived values: never stored, so they cannot get out of sync
+    public int TotalPages => (int)Math.Ceiling(TotalItems / (double)PageSize);
+    public bool HasPrevious => CurrentPage > 1;
+    public bool HasNext => CurrentPage < TotalPages;
+    public int FirstItem => TotalItems == 0 ? 0 : (CurrentPage - 1) * PageSize + 1;
+    public int LastItem => Math.Min(CurrentPage * PageSize, TotalItems);
+}
 
-    public string SortDirection { get; set; } = "Ascending";
-
-    public int CurrentPage { get; set; } = 1;
-
-    public int PageSize { get; set; } = 10;
-
-    public int TotalItems { get; set; }
-
-    public int TotalPages { get; set; }
-    }
-
-    public class VehicleListItemViewModel
+public class VehicleListItemViewModel
 {
-      public int Id { get; set; }
+    public int Id { get; set; }
 
     [Display(Name = "Owner")]
     public string OwnerName { get; set; } = string.Empty;
@@ -44,5 +39,10 @@ namespace VehicleManagement.ViewModels
 
     [Display(Name = "Category")]
     public string CategoryName { get; set; } = string.Empty;
-}
+
+    /// <summary>Icon key of the category (see VehicleCategoryIcons).</summary>
+    public string? CategoryIcon { get; set; }
+
+    /// <summary>Culture-neutral number so the browser can sort the Weight column numerically.</summary>
+    public string WeightSortKey => Weight.ToString(CultureInfo.InvariantCulture);
 }
