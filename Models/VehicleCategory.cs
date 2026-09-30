@@ -14,10 +14,6 @@ public class VehicleCategory
 
     public decimal? MaxWeight { get; set; }
 
-    [Required]
-    [StringLength(500)]
-    public string Size { get; set; } = string.Empty;
-
     public ICollection<Vehicle> Vehicles { get; set; }
         = new List<Vehicle>();
 

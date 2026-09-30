@@ -74,9 +74,9 @@ namespace VehicleManagement.Data
         {
            var seedDate = new DateTime(2026, 9, 29, 15, 45, 32);
             modelBuilder.Entity<VehicleCategory>().HasData(
-                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, Size = "light", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
-                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, Size = "medium", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
-                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, Size = "heavy", CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false }
+                new VehicleCategory { Id = 1, Name = "Light", MinWeight = 0, MaxWeight = 500, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new VehicleCategory { Id = 2, Name = "Medium", MinWeight = 500, MaxWeight = 2500, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false },
+                new VehicleCategory { Id = 3, Name = "Heavy", MinWeight = 2500, MaxWeight = null, CreatedAt = seedDate, UpdatedAt = seedDate, IsDeleted = false }
             );
         }
     }
