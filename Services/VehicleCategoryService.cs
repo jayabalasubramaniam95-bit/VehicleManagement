@@ -81,7 +81,6 @@ public class VehicleCategoryService : IVehicleCategoryService
         if (error is not null) return CategorySaveResult.InvalidRange(error);
 
         categories.Add(candidate);
-
         error = ValidateRanges(categories);
         if (error is not null) return CategorySaveResult.InvalidRange(error);
 
@@ -138,8 +137,11 @@ public class VehicleCategoryService : IVehicleCategoryService
         var error = ValidateRanges(categories);
         if (error is not null) return CategorySaveResult.InvalidRange(error);
 
-        // Entities are tracked, so one SaveChanges (one transaction) covers categories and vehicles.
-        RecategoriseVehicles(categories);
+        _categoryRepository.InTransaction(() =>
+        {
+            _categoryRepository.Update(category);
+            RecategoriseVehicles(categories);
+        });
         return CategorySaveResult.Success();
     }
 
