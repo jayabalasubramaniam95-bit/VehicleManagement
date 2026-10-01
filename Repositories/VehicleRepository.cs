@@ -23,22 +23,22 @@ public class VehicleRepository : IVehicleRepository
 
     #region Queries
 
-    public List<Vehicle> GetAll() =>
+    public List<Vehicle> GetAllVehicles() =>
         Active
             .OrderBy(v => v.OwnerName)
             .ToList();
 
-    public Vehicle? GetById(int id) =>
+    public Vehicle? GetVehicleById(int id) =>
         Active.FirstOrDefault(v => v.Id == id);
 
-    public Vehicle? GetByIdWithDetails(int id) =>
+    public Vehicle? GetVehicleDetailsById(int id) =>
         Active
             .AsNoTracking()
             .Include(v => v.Manufacturer)
             .Include(v => v.Category)
             .FirstOrDefault(v => v.Id == id);
 
-    public List<VehicleSummary> GetPaged(string? search, int pageNumber, int pageSize)
+    public List<VehicleSummary> GetPageWiseVehicleDetails(string? search, int pageNumber, int pageSize)
     {
         pageNumber = Math.Max(pageNumber, 1);
         pageSize = Math.Max(pageSize, 1);
@@ -61,7 +61,7 @@ public class VehicleRepository : IVehicleRepository
     }
 
     // Uses the same base query as GetPaged, so the count always matches the rows
-    public int Count(string? search) =>
+    public int GetVehicleCount(string? search) =>
         ApplySearch(Active, search).Count();
 
     #endregion
@@ -75,14 +75,16 @@ public class VehicleRepository : IVehicleRepository
 
     #region Commands
 
-    public void Add(Vehicle vehicle) =>
-        _context.Vehicles.Add(vehicle);
-
-    public void Update(Vehicle vehicle) =>
+    public void Add(Vehicle vehicle)
+    {
+    _context.Vehicles.Add(vehicle);
+    _context.SaveChanges();
+    }
+    public void Update(Vehicle vehicle)
+    {
         _context.Vehicles.Update(vehicle);
-
-    public void SaveChanges() =>
-        _context.SaveChanges();
+         _context.SaveChanges();
+    }
 
     #endregion
 

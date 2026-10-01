@@ -1,73 +1,66 @@
 using Microsoft.EntityFrameworkCore;
-using VehicleManagement.Data;     // adjust to your DbContext namespace
-using VehicleManagement.Models;   // adjust to your entity namespace
+using VehicleManagement.Data;
+using VehicleManagement.Models;
 
 namespace VehicleManagement.Repositories;
 
 public class ManufacturerRepository : IManufacturerRepository
 {
-    private readonly ApplicationDbContext _db;
+    private readonly ApplicationDbContext _context;
 
-    public ManufacturerRepository(ApplicationDbContext db) => _db = db;
+    public ManufacturerRepository(ApplicationDbContext context) => _context = context;
 
     public int CountManufacturer(string? search) =>
-        Filter(search).Count();
+        SearchFilter(search).Count();
 
-    public List<ManufacturerSummary> GetPage(
-        string? search, string sortBy, bool descending, int skip, int take)
+    public List<ManufacturerSummary> GetPageWiseManufacturer(
+        string? search, int skip, int take)
     {
-        var query = Filter(search);
-
-        var ordered = (sortBy, descending) switch
-        {
-            ("vehicles", true)  => query.OrderByDescending(m => m.Vehicles.Count).ThenBy(m => m.Name),
-            ("vehicles", false) => query.OrderBy(m => m.Vehicles.Count).ThenBy(m => m.Name),
-            (_, true)           => query.OrderByDescending(m => m.Name),
-            _                   => query.OrderBy(m => m.Name)
-        };
-
-        return ordered
+        var query = SearchFilter(search);
+        return query
             .Skip(skip)
             .Take(take)
             .Select(m => new ManufacturerSummary(m.Id, m.Name, m.IsDefault, m.Vehicles.Count))
+            .OrderBy(m=>m.Name)
             .ToList();
     }
 
-    public Manufacturer? GetWithVehicles(int id) =>
-        _db.Manufacturers
+    public Manufacturer? GetManufacturersWithVehicles(int id) =>
+        _context.Manufacturers
            .AsNoTracking()
            .Include(m => m.Vehicles)
            .FirstOrDefault(m => m.Id == id && !m.IsDeleted);
 
-    public Manufacturer? GetById(int id) =>
-        _db.Manufacturers.FirstOrDefault(m => m.Id == id && !m.IsDeleted);
+    public Manufacturer? GetManufacturersById(int id) =>
+        _context.Manufacturers .AsNoTracking().FirstOrDefault(m => m.Id == id && !m.IsDeleted);
 
-    public bool NameExists(string name, int? excludeId = null)
+    public bool IsManufacturersNameExists(string name, int? excludeId = null)
     {
         var normalized = name.Trim().ToLower();
-        return _db.Manufacturers.Any(m => m.Name.ToLower() == normalized && m.Id != excludeId && !m.IsDeleted);
+        return _context.Manufacturers.Any(m => m.Name.ToLower() == normalized && m.Id != excludeId && !m.IsDeleted);
     }
 
-    public List<Manufacturer> GetAll()
+    public List<Manufacturer> GetAllManufacturer()
     {
-        return _db.Manufacturers.AsNoTracking().OrderBy(m => m.Name).ToList();
+        return _context.Manufacturers.Where(m=>!m.IsDeleted).AsNoTracking().OrderBy(m => m.Name).ToList();
     }
 
-    public bool HasVehicles(int id) =>
-        _db.Vehicles.Any(v => v.ManufacturerId == id && !v.IsDeleted);
+    public bool IsManufacturersHasVehicles(int id) =>
+        _context.Vehicles.Any(v => v.ManufacturerId == id && !v.IsDeleted);
 
-    public  void Add(Manufacturer manufacturer) =>
-         _db.Manufacturers.Add(manufacturer);
-
-    public void Update(Manufacturer manufacturer) =>
-        _db.Manufacturers.Update(manufacturer);
-
-    public int SaveChanges() => _db.SaveChanges();
-
-    // Shared by Count and GetPage so both always apply the same filter
-    private IQueryable<Manufacturer> Filter(string? search)
+    public void Add(Manufacturer manufacturer)
     {
-        var query = _db.Manufacturers.Where(m => !m.IsDeleted).AsNoTracking();
+        _context.Manufacturers.Add(manufacturer);
+        _context.SaveChanges();
+    }
+    public void Update(Manufacturer manufacturer)
+    {
+        _context.Manufacturers.Update(manufacturer);
+        _context.SaveChanges();
+    }
+    private IQueryable<Manufacturer> SearchFilter(string? search)
+    {
+        var query = _context.Manufacturers.Where(m => !m.IsDeleted).AsNoTracking();
         return string.IsNullOrWhiteSpace(search)
             ? query
             : query.Where(m => m.Name.Contains(search.Trim()));

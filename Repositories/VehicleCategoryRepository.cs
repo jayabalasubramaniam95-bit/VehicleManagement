@@ -15,7 +15,6 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
         _context = context;
     }
 
-    // Soft-deleted categories are never returned
     private IQueryable<VehicleCategory> Active =>
         _context.VehicleCategories.Where(c => !c.IsDeleted);
 
@@ -23,7 +22,7 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
 
     #region Queries
 
-    public List<VehicleCategorySummary> GetSummaries() =>
+    public List<VehicleCategorySummary> GetVehicleCategorySummaries() =>
         Active
             .AsNoTracking()
             .OrderBy(c => c.MinWeight)
@@ -36,18 +35,17 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
                 _context.Vehicles.Count(v => v.CategoryId == c.Id)))
             .ToList();
 
-    public List<VehicleCategory> GetAll() =>
+    public List<VehicleCategory> GetAllVehicleCategory() =>
         Active
             .OrderBy(c => c.MinWeight)
             .ToList();
 
-    public VehicleCategory? GetById(int id) =>
+    public VehicleCategory? GetVehicleCategoryById(int id) =>
         Active
             .AsNoTracking()
             .FirstOrDefault(c => c.Id == id);
 
-    // MinWeight is inclusive, MaxWeight is exclusive (null = no upper limit).
-    public VehicleCategory? GetByWeight(decimal weight) =>
+    public VehicleCategory? GetVehicleCategoryByWeight(decimal weight) =>
         Active
             .AsNoTracking()
             .FirstOrDefault(c =>
@@ -58,7 +56,7 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
 
     #region Existence Checks
 
-    public bool NameExists(string name, int? excludeId = null)
+    public bool IsVehicleCategoryNameExists(string name, int? excludeId = null)
     {
         var normalized = name.Trim().ToLower();
 
@@ -74,14 +72,16 @@ public class VehicleCategoryRepository : IVehicleCategoryRepository
 
     #region Commands
 
-    public void Add(VehicleCategory category) =>
+    public void Add(VehicleCategory category)
+    {
         _context.VehicleCategories.Add(category);
-
-    public void Update(VehicleCategory category) =>
-        _context.VehicleCategories.Update(category);
-
-    public void SaveChanges() =>
         _context.SaveChanges();
+    }
+    public void Update(VehicleCategory category)
+    {
+        _context.VehicleCategories.Update(category);
+        _context.SaveChanges();
+    }
 
     public void InTransaction(Action work)
     {

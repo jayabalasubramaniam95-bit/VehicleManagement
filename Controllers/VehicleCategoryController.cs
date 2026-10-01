@@ -29,7 +29,7 @@ public class VehicleCategoryController : Controller
 
     [HttpGet]
     public ActionResult Index() =>
-        View(_categoryService.GetList());
+        View(_categoryService.GetVehicleCategoryList());
 
     #endregion
 
@@ -55,7 +55,7 @@ public class VehicleCategoryController : Controller
     [HttpGet]
     public ActionResult Edit(int id)
     {
-        var model = _categoryService.GetForEdit(id);
+        var model = _categoryService.GetVehicleCategoryForEdit(id);
         return model is null ? NotFound() : View("Form", model);
     }
 
@@ -93,22 +93,20 @@ public class VehicleCategoryController : Controller
 
     [AcceptVerbs("GET", "POST")]
     public ActionResult IsNameAvailable(string name, int id) =>
-        Json(string.IsNullOrWhiteSpace(name) || !_categoryService.NameExists(name, id == 0 ? null : id));
+        Json(string.IsNullOrWhiteSpace(name) || !_categoryService.IsVehicleCategoryNameExists(name, id == 0 ? null : id));
 
     #endregion
 
     #region Helpers
 
-    /// <summary>Server-side duplicate check: the Remote attribute alone can be bypassed.</summary>
     private void ValidateUniqueName(VehicleCategoryFormViewModel model)
     {
         if (!ModelState.IsValid) return;
 
-        if (_categoryService.NameExists(model.Name, model.IsEdit ? model.Id : null))
+        if (_categoryService.IsVehicleCategoryNameExists(model.Name, model.IsEdit ? model.Id : null))
             ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
     }
 
-    /// <summary>Shared outcome handling for Create and Edit.</summary>
     private ActionResult CompleteSave(CategorySaveResult result, VehicleCategoryFormViewModel model, string action)
     {
         switch (result.Status)
@@ -125,6 +123,5 @@ public class VehicleCategoryController : Controller
                 return RedirectToAction(nameof(Index));
         }
     }
-
     #endregion
 }

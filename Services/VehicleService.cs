@@ -11,11 +11,9 @@ public class VehicleService : IVehicleService
 
     private const int DefaultPageSize = 10;
     private const string Unknown = "Unknown";
-
     private const string VehicleNotFoundError = "Vehicle could not be found.";
     private const string ManufacturerNotFoundError = "The selected manufacturer does not exist.";
-    private const string CategoryNotFoundError =
-        "No vehicle category covers this weight. Check the category ranges.";
+    private const string CategoryNotFoundError = "No vehicle category covers this weight. Check the category ranges.";
 
     #endregion
 
@@ -44,12 +42,12 @@ public class VehicleService : IVehicleService
         if (pageSize <= 0) pageSize = DefaultPageSize;
         search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
-        var totalItems = _vehicleRepository.Count(search);
+        var totalItems = _vehicleRepository.GetVehicleCount(search);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
         page = Math.Clamp(page, 1, totalPages);
 
         var items = _vehicleRepository
-            .GetPaged(search, page, pageSize)
+            .GetPageWiseVehicleDetails(search, page, pageSize)
             .Select(v => new VehicleListItemViewModel
             {
                 Id = v.Id,
@@ -79,7 +77,7 @@ public class VehicleService : IVehicleService
     // Returns null when the id does not exist.
     public VehicleDetailsViewModel? GetDetails(int id)
     {
-        var vehicle = _vehicleRepository.GetByIdWithDetails(id);
+        var vehicle = _vehicleRepository.GetVehicleDetailsById(id);
 
         return vehicle is null
             ? null
@@ -108,7 +106,7 @@ public class VehicleService : IVehicleService
     // Loads the data for the edit form (null when the id does not exist).
     public VehicleFormViewModel? GetEditViewModel(int id)
     {
-        var vehicle = _vehicleRepository.GetByIdWithDetails(id);
+        var vehicle = _vehicleRepository.GetVehicleDetailsById(id);
         if (vehicle is null) return null;
 
         var model = new VehicleFormViewModel
@@ -126,7 +124,7 @@ public class VehicleService : IVehicleService
 
     public void PopulateDropdowns(VehicleFormViewModel model) =>
         model.Manufacturers = _manufacturerRepository
-            .GetAll()   // active manufacturers, already ordered by name
+            .GetAllManufacturer()   // active manufacturers, already ordered by name
             .Select(m => new SelectListItem { Value = m.Id.ToString(), Text = m.Name })
             .ToList();
 
@@ -139,27 +137,23 @@ public class VehicleService : IVehicleService
         var now = DateTime.UtcNow;
         var vehicle = new Vehicle { CreatedAt = now, IsDeleted = false };
 
-        Apply(vehicle, model, categoryId, now);
+        Apply(vehicle, model, categoryId);
 
         _vehicleRepository.Add(vehicle);
-        _vehicleRepository.SaveChanges();
-
         return ServiceResult.Ok();
     }
 
     // The category is re-derived from the weight on every update.
     public ServiceResult Update(VehicleFormViewModel model)
     {
-        var vehicle = _vehicleRepository.GetById(model.Id);
+        var vehicle = _vehicleRepository.GetVehicleById(model.Id);
         if (vehicle is null) return ServiceResult.Fail(VehicleNotFoundError);
 
         var check = ResolveReferences(model, out var categoryId);
         if (!check.Success) return check;
 
-        Apply(vehicle, model, categoryId, DateTime.UtcNow);
-
-        _vehicleRepository.SaveChanges();   // the entity is tracked, so no explicit Update call is needed
-
+        Apply(vehicle, model, categoryId);
+        _vehicleRepository.Update(vehicle);
         return ServiceResult.Ok();
     }
 
@@ -169,13 +163,12 @@ public class VehicleService : IVehicleService
 
     public ServiceResult Delete(int id)
     {
-        var vehicle = _vehicleRepository.GetById(id);
+        var vehicle = _vehicleRepository.GetVehicleById(id);
         if (vehicle is null) return ServiceResult.Fail(VehicleNotFoundError);
 
         vehicle.IsDeleted = true;
         vehicle.UpdatedAt = DateTime.UtcNow;
-        _vehicleRepository.SaveChanges();
-
+        _vehicleRepository.Update(vehicle);
         return ServiceResult.Ok();
     }
 
@@ -191,7 +184,7 @@ public class VehicleService : IVehicleService
         if (!_vehicleRepository.HasManufacturer(model.ManufacturerId!.Value))
             return ServiceResult.Fail(ManufacturerNotFoundError);
 
-        var category = _vehicleCategoryRepository.GetByWeight(model.Weight!.Value);
+        var category = _vehicleCategoryRepository.GetVehicleCategoryByWeight(model.Weight!.Value);
         if (category is null)
             return ServiceResult.Fail(CategoryNotFoundError);
 
@@ -200,14 +193,14 @@ public class VehicleService : IVehicleService
     }
 
     // Copies form values onto the entity (validation guarantees the nullable fields have values).
-    private static void Apply(Vehicle vehicle, VehicleFormViewModel model, int categoryId, DateTime now)
+    private static void Apply(Vehicle vehicle, VehicleFormViewModel model, int categoryId)
     {
         vehicle.OwnerName = model.OwnerName;
         vehicle.ManufacturerId = model.ManufacturerId!.Value;
         vehicle.YearOfManufacture = model.YearOfManufacture!.Value;
         vehicle.Weight = model.Weight!.Value;
         vehicle.CategoryId = categoryId;
-        vehicle.UpdatedAt = now;
+        vehicle.UpdatedAt = DateTime.UtcNow;
     }
 
     #endregion

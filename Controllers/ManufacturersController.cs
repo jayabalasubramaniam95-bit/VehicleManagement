@@ -12,21 +12,21 @@ public class ManufacturersController : Controller
     private const int PageSize = 10;
     private const string DuplicateNameMessage = "A manufacturer with this name already exists.";
 
-    private readonly IManufacturerService _service;
+    private readonly IManufacturerService _manufacturerservice;
 
-    public ManufacturersController(IManufacturerService service) => _service = service;
+    public ManufacturersController(IManufacturerService manufacturerservice) => _manufacturerservice = manufacturerservice;
 
     #endregion
 
     #region List and Details
 
     public ActionResult Index(
-        string? search, string sortBy = "name", string sortDirection = "asc", int page = 1) =>
-        View(_service.GetPaged(search, sortBy, sortDirection, page, PageSize));
+        string? search, int page = 1) =>
+        View(_manufacturerservice.GetPageWiseManufacturer(search, page, PageSize));
 
     public ActionResult Details(int id)
     {
-        var model = _service.GetDetails(id);
+        var model = _manufacturerservice.GetManufacturerDetails(id);
         return model is null ? NotFound() : View(model);
     }
 
@@ -42,7 +42,7 @@ public class ManufacturersController : Controller
         ValidateUniqueName(model);
         if (!ModelState.IsValid) return View("Form", model);
 
-        _service.Create(model);
+        _manufacturerservice.Create(model);
         TempData["SuccessMessage"] = $"Manufacturer '{model.Name}' was added.";
         return RedirectToAction(nameof(Index));
     }
@@ -53,7 +53,7 @@ public class ManufacturersController : Controller
 
     public ActionResult Edit(int id)
     {
-        var model = _service.GetForEdit(id);
+        var model = _manufacturerservice.GetManufacturerForEdit(id);
         return model is null ? NotFound() : View("Form", model);
     }
 
@@ -63,7 +63,7 @@ public class ManufacturersController : Controller
         ValidateUniqueName(model);
         if (!ModelState.IsValid) return View("Form", model);
 
-        if (!_service.Update(model)) return NotFound();
+        if (!_manufacturerservice.Update(model)) return NotFound();
 
         TempData["SuccessMessage"] = $"Manufacturer '{model.Name}' was updated.";
         return RedirectToAction(nameof(Index));
@@ -76,7 +76,7 @@ public class ManufacturersController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public ActionResult Delete(int id)
     {
-        var (key, message) = _service.Delete(id) switch
+        var (key, message) = _manufacturerservice.Delete(id) switch
         {
             DeleteResult.Deleted     => ("SuccessMessage", "Manufacturer deleted."),
             DeleteResult.IsDefault   => ("ErrorMessage", "Default manufacturers cannot be deleted."),
@@ -94,7 +94,7 @@ public class ManufacturersController : Controller
 
     [AcceptVerbs("GET", "POST")]
     public ActionResult IsNameAvailable(string name, int id) =>
-        Json(string.IsNullOrWhiteSpace(name) || !_service.NameExists(name, id == 0 ? null : id));
+        Json(string.IsNullOrWhiteSpace(name) || !_manufacturerservice.IsManufacturersNameExists(name, id == 0 ? null : id));
 
     #endregion
 
@@ -105,7 +105,7 @@ public class ManufacturersController : Controller
     {
         if (!ModelState.IsValid) return;
 
-        if (_service.NameExists(model.Name, model.IsEdit ? model.Id : null))
+        if (_manufacturerservice.IsManufacturersNameExists(model.Name, model.IsEdit ? model.Id : null))
             ModelState.AddModelError(nameof(model.Name), DuplicateNameMessage);
     }
 

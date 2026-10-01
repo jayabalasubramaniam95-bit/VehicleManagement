@@ -23,12 +23,12 @@ public class VehicleCategoryService : IVehicleCategoryService
 
     #region Queries
 
-    public VehicleCategory? GetByWeight(decimal weight) =>
-        _categoryRepository.GetByWeight(weight);
+    public VehicleCategory? GetVehicleCategoryByWeight(decimal weight) =>
+        _categoryRepository.GetVehicleCategoryByWeight(weight);
 
-    public VehicleCategoryListViewModel GetList() => new()
+    public VehicleCategoryListViewModel GetVehicleCategoryList() => new()
     {
-        Categories = _categoryRepository.GetSummaries()
+        Categories = _categoryRepository.GetVehicleCategorySummaries()
             .Select(s => new VehicleCategoryItemViewModel
             {
                 Id = s.Id,
@@ -41,9 +41,9 @@ public class VehicleCategoryService : IVehicleCategoryService
             .ToList()
     };
 
-    public VehicleCategoryFormViewModel? GetForEdit(int id)
+    public VehicleCategoryFormViewModel? GetVehicleCategoryForEdit(int id)
     {
-        var category = _categoryRepository.GetById(id);
+        var category = _categoryRepository.GetVehicleCategoryById(id);
         if (category is null) return null;
 
         return new VehicleCategoryFormViewModel
@@ -56,8 +56,8 @@ public class VehicleCategoryService : IVehicleCategoryService
         };
     }
 
-    public bool NameExists(string name, int? excludeId = null) =>
-        _categoryRepository.NameExists(name, excludeId);
+    public bool IsVehicleCategoryNameExists(string name, int? excludeId = null) =>
+        _categoryRepository.IsVehicleCategoryNameExists(name, excludeId);
 
     #endregion
 
@@ -65,7 +65,7 @@ public class VehicleCategoryService : IVehicleCategoryService
 
     public CategorySaveResult Create(VehicleCategoryFormViewModel model)
     {
-        var categories = _categoryRepository.GetAll();
+        var categories = _categoryRepository.GetAllVehicleCategory();
 
         var candidate = new VehicleCategory
         {
@@ -88,10 +88,7 @@ public class VehicleCategoryService : IVehicleCategoryService
         _categoryRepository.InTransaction(() =>
         {
             _categoryRepository.Add(candidate);
-            _categoryRepository.SaveChanges(); // candidate.Id is known after this
-
             RecategoriseVehicles(categories);
-            _categoryRepository.SaveChanges();
         });
 
         return CategorySaveResult.Success();
@@ -103,7 +100,7 @@ public class VehicleCategoryService : IVehicleCategoryService
 
     public CategorySaveResult Update(VehicleCategoryFormViewModel model)
     {
-        var categories = _categoryRepository.GetAll();
+        var categories = _categoryRepository.GetAllVehicleCategory();
         var category = categories.FirstOrDefault(c => c.Id == model.Id);
         if (category is null) return CategorySaveResult.NotFound();
 
@@ -143,8 +140,6 @@ public class VehicleCategoryService : IVehicleCategoryService
 
         // Entities are tracked, so one SaveChanges (one transaction) covers categories and vehicles.
         RecategoriseVehicles(categories);
-        _categoryRepository.SaveChanges();
-
         return CategorySaveResult.Success();
     }
 
@@ -154,7 +149,7 @@ public class VehicleCategoryService : IVehicleCategoryService
 
     public CategoryDeleteResult Delete(int id)
     {
-        var categories = _categoryRepository.GetAll();
+        var categories = _categoryRepository.GetAllVehicleCategory();
         var category = categories.FirstOrDefault(c => c.Id == id);
 
         if (category is null) return CategoryDeleteResult.NotFound;
@@ -179,12 +174,9 @@ public class VehicleCategoryService : IVehicleCategoryService
                 next.UpdatedAt = now;
             }
         }
-
         category.IsDeleted = true;
         category.UpdatedAt = now;
         _categoryRepository.Update(category);
-        _categoryRepository.SaveChanges();
-
         return CategoryDeleteResult.Deleted;
     }
 
@@ -196,7 +188,7 @@ public class VehicleCategoryService : IVehicleCategoryService
     {
         var now = DateTime.UtcNow;
 
-        foreach (var vehicle in _vehicleRepository.GetAll())
+        foreach (var vehicle in _vehicleRepository.GetAllVehicles())
         {
             var match = FindCategory(categories, vehicle.Weight);
             if (match is null || vehicle.CategoryId == match.Id) continue;

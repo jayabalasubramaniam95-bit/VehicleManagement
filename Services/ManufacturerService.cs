@@ -1,50 +1,40 @@
 using Microsoft.EntityFrameworkCore;
 using VehicleManagement.Data;      // adjust to your DbContext namespace
 using VehicleManagement.Models;    // adjust to your entity namespace
+using VehicleManagement.Repositories;
 using VehicleManagement.ViewModels;
 
 namespace VehicleManagement.Services;
 
 public class ManufacturerService : IManufacturerService
 {
-    private readonly ApplicationDbContext _db;
-
-    public ManufacturerService(ApplicationDbContext db) => _db = db;
-
-    public  ManufacturerListViewModel GetPaged(
-        string? search, string sortBy, string sortDirection, int page, int pageSize)
+    #region Constants
+    private const int DefaultPageSize = 10;
+    #endregion
+    ManufacturerRepository _manufacturerRepository;
+    public ManufacturerService(ManufacturerRepository manufacturerRepository)
     {
-        // Whitelist user input: anything unexpected falls back to the default sort
-        sortBy = sortBy == "vehicles" ? "vehicles" : "name";
-        sortDirection = sortDirection == "desc" ? "desc" : "asc";
-        search = search?.Trim();
+        _manufacturerRepository=manufacturerRepository;
+    }
 
-        var query = _db.Manufacturers.Where(m=>!m.IsDeleted).AsNoTracking();
+    public  ManufacturerListViewModel GetPageWiseManufacturer(
+        string? search, int page, int pageSize)
+    {
+        if (pageSize <= 0) pageSize = DefaultPageSize;
+                search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
-        if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(m => m.Name.Contains(search));
-
-        var totalItems = query.Count();
+        var totalItems = _manufacturerRepository.CountManufacturer(search);
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
         page = Math.Clamp(page, 1, totalPages);
 
-        var ordered = (sortBy, sortDirection) switch
-        {
-            ("vehicles", "desc") => query.OrderByDescending(m => m.Vehicles.Count).ThenBy(m => m.Name),
-            ("vehicles", _)      => query.OrderBy(m => m.Vehicles.Count).ThenBy(m => m.Name),
-            (_, "desc")          => query.OrderByDescending(m => m.Name),
-            _                    => query.OrderBy(m => m.Name)
-        };
-
-        var items = ordered
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        var items = _manufacturerRepository
+            .GetPageWiseManufacturer(search, page, pageSize)
             .Select(m => new ManufacturerListItemViewModel
             {
                 Id = m.Id,
                 Name = m.Name,
                 IsDefault = m.IsDefault,
-                VehicleCount = m.Vehicles.Count
+                VehicleCount = m.VehicleCount
             })
             .ToList();
 
@@ -52,80 +42,72 @@ public class ManufacturerService : IManufacturerService
         {
             Manufacturers = items,
             Search = search,
-            SortBy = sortBy,
-            SortDirection = sortDirection,
             CurrentPage = page,
             PageSize = pageSize,
             TotalItems = totalItems
         };
     }
 
-    public ManufacturerDetailsViewModel? GetDetails(int id) =>
-        _db.Manufacturers
-            .AsNoTracking()
-            .Where(m => m.Id == id && !m.IsDeleted)
-            .Select(m => new ManufacturerDetailsViewModel
-            {
-                Id = m.Id,
-                Name = m.Name,
-                IsDefault = m.IsDefault,
-                VehicleCount = m.Vehicles.Count,
-                Vehicles = m.Vehicles
-                    .Select(v => new VehicleListItemViewModel
-                    {
-                        Id = v.Id,
-                        OwnerName = v.OwnerName,
-                        ManufacturerName = v.Manufacturer.Name,
-                        YearOfManufacture = v.YearOfManufacture,
-                        CategoryName = (v.Category != null ? v.Category.Name : string.Empty),
-                        CategoryIcon = (v.Category != null ? v.Category.Icon : string.Empty),
-                        Weight = v.Weight
-                    })
-                    .ToList()
-            })
-            .FirstOrDefault();
-
-    public ManufacturerFormViewModel? GetForEdit(int id) =>
-        _db.Manufacturers
-            .AsNoTracking()
-            .Where(m => m.Id == id && !m.IsDeleted)
-            .Select(m => new ManufacturerFormViewModel { Id = m.Id, Name = m.Name })
-            .FirstOrDefault();
-
-    public bool NameExists(string name, int? excludeId = null)
+    public ManufacturerDetailsViewModel? GetManufacturerDetails(int id)
     {
-        var normalized = name.Trim().ToLower();
-        return _db.Manufacturers.Any(m =>
-            m.Name.ToLower() == normalized && m.Id != excludeId && !m.IsDeleted);
+        var manufacturer = _manufacturerRepository.GetManufacturersWithVehicles(id);
+            return manufacturer is null? null :
+                 new ManufacturerDetailsViewModel
+                {
+                    Id = manufacturer.Id,
+                    Name = manufacturer.Name,
+                    IsDefault = manufacturer.IsDefault,
+                    VehicleCount = manufacturer.Vehicles.Count,
+                    Vehicles = manufacturer.Vehicles
+                        .Select(v => new VehicleListItemViewModel
+                        {
+                            Id = v.Id,
+                            OwnerName = v.OwnerName,
+                            ManufacturerName = v.Manufacturer.Name,
+                            YearOfManufacture = v.YearOfManufacture,
+                            CategoryName = (v.Category != null ? v.Category.Name : string.Empty),
+                            CategoryIcon = (v.Category != null ? v.Category.Icon : string.Empty),
+                            Weight = v.Weight
+                        })
+                        .ToList()
+                };
+        }
+
+
+    public ManufacturerFormViewModel? GetManufacturerForEdit(int id)
+    {
+        var manufacturer = _manufacturerRepository.GetManufacturersWithVehicles(id);
+        return manufacturer is null? null : new ManufacturerFormViewModel { Id = manufacturer.Id, Name = manufacturer.Name };
+    }
+    public bool IsManufacturersNameExists(string name, int? excludeId = null)
+    {
+        return _manufacturerRepository.IsManufacturersNameExists(name, excludeId);
     }
 
     public  void Create(ManufacturerFormViewModel model)
     {
-        _db.Manufacturers.Add(new Manufacturer { Name = model.Name, IsDefault = false, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
-        _db.SaveChanges();
+        _manufacturerRepository.Add(new Manufacturer { Name = model.Name, IsDefault = false, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
     }
 
     public  bool Update(ManufacturerFormViewModel model)
     {
-        var entity = _db.Manufacturers.Find(model.Id);
+        var entity = _manufacturerRepository.GetManufacturersById(model.Id);
         if (entity is null) return false;
-
         entity.Name = model.Name;
         entity.UpdatedAt = DateTime.UtcNow;
-        _db.SaveChanges();
+        _manufacturerRepository.Update(entity);
         return true;
     }
 
     public  DeleteResult Delete(int id)
     {
-        var entity =  _db.Manufacturers.Find(id);
+        var entity =  _manufacturerRepository.GetManufacturersById(id);
         if (entity is null) return DeleteResult.NotFound;
         if (entity.IsDefault) return DeleteResult.IsDefault;
-        if (_db.Vehicles.Any(v => v.ManufacturerId == id)) return DeleteResult.HasVehicles;
+        if (entity.Vehicles.Any(v => v.ManufacturerId == id)) return DeleteResult.HasVehicles;
         entity.IsDeleted = true;
         entity.UpdatedAt = DateTime.UtcNow;
-        _db.Manufacturers.Update(entity);
-        _db.SaveChanges();
+        _manufacturerRepository.Update(entity);
         return DeleteResult.Deleted;
     }
 }

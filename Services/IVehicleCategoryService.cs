@@ -30,13 +30,13 @@ public interface IVehicleCategoryService
     #region Queries
 
     /// <summary>Used by the vehicle module to auto-assign a category from a weight.</summary>
-    VehicleCategory? GetByWeight(decimal weight);
+    VehicleCategory? GetVehicleCategoryByWeight(decimal weight);
 
-    VehicleCategoryListViewModel GetList();
+    VehicleCategoryListViewModel GetVehicleCategoryList();
 
-    VehicleCategoryFormViewModel? GetForEdit(int id);
+    VehicleCategoryFormViewModel? GetVehicleCategoryForEdit(int id);
 
-    bool NameExists(string name, int? excludeId = null);
+    bool IsVehicleCategoryNameExists(string name, int? excludeId = null);
 
     #endregion
 

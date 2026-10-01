@@ -9,7 +9,6 @@ public class VehiclesController : Controller
     #region Constants
 
     private const int PageSize = 10;
-
     private const string SuccessKey = "SuccessMessage";
     private const string ErrorKey = "ErrorMessage";
 

@@ -6,25 +6,14 @@ public record ManufacturerSummary(int Id, string Name, bool IsDefault, int Vehic
 
 public interface IManufacturerRepository
 {
-    // Index (list, search, sort, paging)
     int CountManufacturer(string? search);
-    List<ManufacturerSummary> GetPage(
-        string? search, string sortBy, bool descending, int skip, int take);
-
-    List<Manufacturer> GetAll();
-
-    // Details
-    Manufacturer? GetWithVehicles(int id);
-    
-    // Edit / Delete 
-    Manufacturer? GetById(int id);
-
-    // Validation and business rules
-    bool NameExists(string name, int? excludeId = null);
-    bool HasVehicles(int id);
-
-    // Create / Delete / persist
+    List<ManufacturerSummary> GetPageWiseManufacturer(
+        string? search, int skip, int take);
+    List<Manufacturer> GetAllManufacturer();
+    Manufacturer? GetManufacturersWithVehicles(int id);
+    Manufacturer? GetManufacturersById(int id);
+    bool IsManufacturersNameExists(string name, int? excludeId = null);
+    bool IsManufacturersHasVehicles(int id);
     void Add(Manufacturer manufacturer);
     void Update(Manufacturer manufacturer);
-    int SaveChanges();
 }
