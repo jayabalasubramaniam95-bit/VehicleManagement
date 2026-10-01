@@ -14,14 +14,18 @@ public class ManufacturerRepository : IManufacturerRepository
         SearchFilter(search).Count();
 
     public List<ManufacturerSummary> GetPageWiseManufacturer(
-        string? search, int skip, int take)
+        string? search, int pageNumber, int pageSize)
     {
+        pageNumber = Math.Max(pageNumber, 1);
+        pageSize = Math.Max(pageSize, 1);
+
         var query = SearchFilter(search);
-        return query
-            .Skip(skip)
-            .Take(take)
+        return query.AsNoTracking()
+            .OrderBy(v => v.Name)
+            .ThenBy(v => v.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(m => new ManufacturerSummary(m.Id, m.Name, m.IsDefault, m.Vehicles.Count))
-            .OrderBy(m=>m.Name)
             .ToList();
     }
 
@@ -29,6 +33,7 @@ public class ManufacturerRepository : IManufacturerRepository
         _context.Manufacturers
            .AsNoTracking()
            .Include(m => m.Vehicles)
+           .ThenInclude(v => v.Category)
            .FirstOrDefault(m => m.Id == id && !m.IsDeleted);
 
     public Manufacturer? GetManufacturersById(int id) =>

@@ -18,12 +18,4 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="VehicleManagement.Tests\**" />
-    <Content Remove="VehicleManagement.Tests\**" />
-    <EmbeddedResource Remove="VehicleManagement.Tests\**" />
-    <None Remove="VehicleManagement.Tests\**" />
-  </ItemGroup>
-
 </Project>

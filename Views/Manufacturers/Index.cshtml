@@ -111,28 +111,50 @@
             </div>
         </div>
 
-        <div class="pagination-container">
-            <span>Showing @Model.FirstItem - @Model.LastItem of @Model.TotalItems manufacturers</span>
+       <div class="pagination-container">
+            <div class="pagination-summary">
+                Showing <strong>@Model.FirstItem</strong> - <strong>@Model.LastItem</strong>
+                of <strong>@Model.TotalItems</strong> vehicles
+            </div>
 
             @if (Model.TotalPages > 1)
             {
-                <div class="pagination">
+                <nav class="pagination" aria-label="Vehicle pagination">
+
                     @if (Model.HasPrevious)
                     {
-                        <a asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)" asp-route-search="@Model.Search">Previous</a>
+                        <a asp-action="Index" asp-route-page="@(Model.CurrentPage - 1)"
+                           asp-route-search="@Model.Search" class="pagination-link">&laquo; Previous</a>
+                    }
+                    else
+                    {
+                        <span class="pagination-link disabled">&laquo; Previous</span>
                     }
 
-                    @for (var i = 1; i <= Model.TotalPages; i++)
+                    @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
                     {
-                        <a asp-action="Index" asp-route-page="@i" asp-route-search="@Model.Search"
-                           class="@(i == Model.CurrentPage ? "active" : null)">@i</a>
+                        if (pageNumber == Model.CurrentPage)
+                        {
+                            <span class="pagination-link active" aria-current="page">@pageNumber</span>
+                        }
+                        else
+                        {
+                            <a asp-action="Index" asp-route-page="@pageNumber"
+                               asp-route-search="@Model.Search" class="pagination-link">@pageNumber</a>
+                        }
                     }
 
                     @if (Model.HasNext)
                     {
-                        <a asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)" asp-route-search="@Model.Search">Next</a>
+                        <a asp-action="Index" asp-route-page="@(Model.CurrentPage + 1)"
+                           asp-route-search="@Model.Search" class="pagination-link">Next &raquo;</a>
                     }
-                </div>
+                    else
+                    {
+                        <span class="pagination-link disabled">Next &raquo;</span>
+                    }
+
+                </nav>
             }
         </div>
     }

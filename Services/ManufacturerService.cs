@@ -11,8 +11,8 @@ public class ManufacturerService : IManufacturerService
     #region Constants
     private const int DefaultPageSize = 10;
     #endregion
-    ManufacturerRepository _manufacturerRepository;
-    public ManufacturerService(ManufacturerRepository manufacturerRepository)
+    IManufacturerRepository _manufacturerRepository;
+    public ManufacturerService(IManufacturerRepository manufacturerRepository)
     {
         _manufacturerRepository=manufacturerRepository;
     }
@@ -24,6 +24,7 @@ public class ManufacturerService : IManufacturerService
                 search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
         var totalItems = _manufacturerRepository.CountManufacturer(search);
+        if(totalItems == 0){ return new ManufacturerListViewModel();}
         var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
         page = Math.Clamp(page, 1, totalPages);
 
@@ -65,8 +66,8 @@ public class ManufacturerService : IManufacturerService
                             OwnerName = v.OwnerName,
                             ManufacturerName = v.Manufacturer.Name,
                             YearOfManufacture = v.YearOfManufacture,
-                            CategoryName = (v.Category != null ? v.Category.Name : string.Empty),
-                            CategoryIcon = (v.Category != null ? v.Category.Icon : string.Empty),
+                            CategoryName = v.Category?.Name ?? string.Empty,
+                            CategoryIcon = v.Category?.Icon ?? string.Empty,
                             Weight = v.Weight
                         })
                         .ToList()
